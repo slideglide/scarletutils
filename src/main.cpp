@@ -15,7 +15,9 @@
 using namespace geode::prelude;
 using namespace keybinds;
 
+#ifdef GEODE_IS_WINDOWS
 HWND hwnd = FindWindow(NULL, "Geometry Dash");
+#endif
 bool preventDeath = Mod::get()->getSavedValue<bool>("preventDeath", false);
 bool fadeLevel = Mod::get()->getSavedValue<bool>("fadeLevel", false);
 double fadeLevelInDuration = Mod::get()->getSavedValue<double>("fadeLevelInDuration", 0.5);
@@ -217,6 +219,7 @@ class $modify(PlayLayer)
             }
         }
 
+        #ifdef GEODE_IS_WINDOWS
         if (preventDeath)
         Loader::get()->queueInMainThread([] {
             SendMessage(hwnd, WM_KEYDOWN, 0x42, 0);
@@ -228,6 +231,7 @@ class $modify(PlayLayer)
                 SendMessage(hwnd, WM_KEYUP, 0x56, 0);
             });
         });
+        #endif
     }
 
     void applyStartFade()
@@ -442,6 +446,7 @@ $on_mod(Loaded)
             ImGui::SetNextWindowSizeConstraints(ImVec2(450.f, -1.0f), ImVec2(INFINITY, -1.0f));
             ImGui::Begin("Scarlet Utils", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
+            #ifdef GEODE_IS_WINDOWS
             ImGui::Checkbox("Auto Backstep On Death", &preventDeath);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("preventDeath", preventDeath); }
             if (ImGui::IsItemHovered())
@@ -464,7 +469,9 @@ $on_mod(Loaded)
                 ImGui::Text("Warning: Silicate UI may be laggy while using this.");
                 ImGui::EndTooltip();
             }
+            #endif
 
+            
             ImGui::Checkbox("Click Green Dash Orbs", &clickGreenDashOrbs);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("clickGreenDashOrbs", clickGreenDashOrbs); }
             if (ImGui::IsItemHovered())
