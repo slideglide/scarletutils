@@ -1,0 +1,27 @@
+{
+	"geode": "4.10.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "scarlet.utils",
+	"name": "Scarlet Utils",
+	"version": "v1.0.1",
+	"developer": "scarlet",
+	"description": "Tools for botting and showcasing.",
+	"dependencies":
+	{
+		"geode.custom-keybinds":
+		{
+			"version": ">=1.11.0",
+			"importance": "required"
+		}
+	},
+	"resources": {
+		"files": [
+			"resources/font.ttf"
+		]
+	}
+}
