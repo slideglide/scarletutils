@@ -46,7 +46,7 @@ bool clickBlackOrbs = Mod::get()->getSavedValue<bool>("clickBlackOrbs", false);
 bool noEffect = Mod::get()->getSavedValue<bool>("noEffect", false);
 bool clickJumpPads = Mod::get()->getSavedValue<bool>("clickJumpPads", false);
 bool clickedJumpPad = false;
-bool pauseFirstTick = Mod::get()->getSavedValue<bool>("pauseFirstTick", false);
+bool restartFirstFrame = Mod::get()->getSavedValue<bool>("pauseFirstTick", false);
 bool autoStraightFly = Mod::get()->getSavedValue<bool>("autoStraightFly", false);
 double autoStraightFlyThreshold = Mod::get()->getSavedValue<bool>("autoStraightFlyThreshold", 0);
 bool layoutMode = Mod::get()->getSavedValue<bool>("layoutMode", false);
@@ -319,7 +319,7 @@ class $modify(PlayLayer)
     {
         PlayLayer::startGame();
         this->applyStartFade();
-        if (pauseFirstTick)
+        if (restartFirstFrame)
         {
             Loader::get()->queueInMainThread([this] {
             Loader::get()->queueInMainThread([this] {
@@ -385,7 +385,7 @@ class $modify(RingObject)
 {
     void spawnCircle() {
         if (noEffect)
-            return;
+            this->m_hasNoEffects = true;
         RingObject::spawnCircle();
     }
 };
@@ -416,15 +416,9 @@ class $modify(PlayerObject)
         PlayerObject::playDeathEffect();
     }
 
-    void ringJump(RingObject* object, bool skipCheck) {
-        if (noEffect)
-            m_playEffects = false;
-        PlayerObject::ringJump(object, skipCheck);
-    }
-
     void startDashing(DashRingObject* object) {
         if (noEffect)
-            m_playEffects = false;
+            m_hasNoEffects = true;
         PlayerObject::startDashing(object);
     }
 
@@ -741,8 +735,8 @@ $on_mod(Loaded)
                 ImGui::EndTooltip();
             }
 
-            ImGui::Checkbox("Restart First Frame", &pauseFirstTick);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("pauseFirstTick", pauseFirstTick); }
+            ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
+            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("restartFirstFrame", restartFirstFrame); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
