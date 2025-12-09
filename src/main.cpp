@@ -1,8 +1,12 @@
+#include "Geode/cocos/label_nodes/CCLabelBMFont.h"
+#include "Geode/ui/BasedButtonSprite.hpp"
 #include <Geode/Enums.hpp>
 #include <Geode/Geode.hpp>
+#include <Geode/binding/PauseLayer.hpp>
 #include <Geode/binding/RingObject.hpp>
 #include <imgui-cocos.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/PauseLayer.hpp>
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/EffectGameObject.hpp>
@@ -432,7 +436,7 @@ $on_mod(Loaded)
             style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
             style.WindowMenuButtonPosition = ImGuiDir_None;
             style.WindowBorderSize = 0.f;
-            style.WindowRounding = 8.0f;
+            style.WindowRounding = 6.0f;
             style.PopupBorderSize = 0.f;
             style.Colors[ImGuiCol_WindowBg] = ImVec4(0.05f, 0.016f, 0.025f, 0.9f);
             style.Colors[ImGuiCol_PopupBg] = ImVec4(0.05f, 0.016f, 0.025f, 0.9f);
@@ -618,3 +622,29 @@ $on_mod(Loaded)
             ImGui::End();
             });
 }
+
+// #ifdef GEODE_MOBILE
+class $modify(ScarletUtilsPauseLayerHook, PauseLayer)
+{
+    void customSetup() {
+        PauseLayer::customSetup();
+
+        auto buttonLabel = CCLabelBMFont::create("Utils", "goldFont.fnt");
+        auto btn = CCMenuItemSpriteExtra::create(
+            CircleButtonSprite::create(buttonLabel),
+            this,
+            menu_selector(ScarletUtilsPauseLayerHook::onButton)
+        );
+        
+        auto rightButtonMenu = this->getChildByID("right-button-menu");
+        if (!rightButtonMenu) return;
+
+        rightButtonMenu->addChild(btn);
+        rightButtonMenu->updateLayout();
+    }
+
+    void onButton(CCObject* sender) {
+        menuVisible = !menuVisible;
+    }
+};
+// #endif

@@ -17,6 +17,11 @@
 		{
 			"version": ">=1.11.0",
 			"importance": "required"
+		},
+		"geode.node-ids":
+		{
+			"version": ">=1.21.1",
+			"importance": "required"
 		}
 	},
 	"resources": {
