@@ -1,3 +1,4 @@
+#include "Geode/ui/Layout.hpp"
 #include <Geode/Enums.hpp>
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GJBaseGameLayer.hpp>
@@ -55,6 +56,8 @@ bool zoomEnabled = Mod::get()->getSavedValue<bool>("zoomEnabled", false);
 double zoom = Mod::get()->getSavedValue<double>("zoom", 1);
 float zoomAnchorX = Mod::get()->getSavedValue<float>("zoomAnchorX", 0.5);
 float zoomAnchorY = Mod::get()->getSavedValue<float>("zoomAnchorY", 0.5);
+bool zoomOnP1 = Mod::get()->getSavedValue<bool>("zoomOnP1", false);
+bool zoomOnP2 = Mod::get()->getSavedValue<bool>("zoomOnP2", false);
 
 class $modify(GJBaseGameLayer)
 {
@@ -82,18 +85,27 @@ class $modify(GJBaseGameLayer)
 
         GJBaseGameLayer::processCommands(dt);
         
-        if (zoomEnabled)
+        if (zoomEnabled && PlayLayer::get())
         {
-            if (PlayLayer::get())
+            if (zoomOnP1)
+            {
+                auto pos = this->convertToNodeSpace(m_player1->getParent()->convertToWorldSpace(m_player1->getPosition()));
+                CCScene::get()->getChildByID("PlayLayer")->setAnchorPoint({pos.x/this->getContentWidth(), pos.y/this->getContentHeight()});
+            }
+            else if (zoomOnP2 && m_player2)
+            {
+                auto pos = this->convertToNodeSpace(m_player2->getParent()->convertToWorldSpace(m_player2->getPosition()));
+                CCScene::get()->getChildByID("PlayLayer")->setAnchorPoint({pos.x/this->getContentWidth(), pos.y/this->getContentHeight()});
+            }
+            else
             {
                 CCScene::get()->getChildByID("PlayLayer")->setAnchorPoint({zoomAnchorX, zoomAnchorY});
-                CCScene::get()->getChildByID("PlayLayer")->setScale(zoom);
             }
+            CCScene::get()->getChildByID("PlayLayer")->setScale(zoom);
         }
-        else
+        else if (PlayLayer::get())
         {
-            if (PlayLayer::get())
-                CCScene::get()->getChildByID("PlayLayer")->setScale(1);
+            CCScene::get()->getChildByID("PlayLayer")->setScale(1);
         }
     }
 
@@ -144,18 +156,6 @@ class $modify(GJBaseGameLayer)
         GJBaseGameLayer::processQueuedButtons();
     }
 
-    void lightningFlash(CCPoint from, CCPoint to, ccColor3B color, float lineWidth, float duration, int displacement, bool flash, float opacity) {
-        if (noEffect)
-            return;
-        GJBaseGameLayer::lightningFlash(from, to, color, lineWidth, duration, displacement, flash, opacity);
-    }
-
-    void teleportPlayer(TeleportPortalObject* object, PlayerObject* player) {
-        if (noEffect)
-            object->m_hasNoEffects = true;
-        GJBaseGameLayer::teleportPlayer(object, player);
-    }
-
     void updateColor(ccColor3B& color, float fadeTime, int colorID, bool blending, float opacity, ccHSVValue& copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject* callerObject, int unk1, int unk2) {
         if (!PlayLayer::get() || !layoutMode)
             return GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
@@ -199,6 +199,12 @@ class $modify(GJBaseGameLayer)
         if (layoutMode && PlayLayer::get())
             background = 13;
         GJBaseGameLayer::createBackground(background);
+    }
+
+    void createGroundLayer(int ground, int line) {
+        if (layoutMode && PlayLayer::get())
+            ground = 1;
+        GJBaseGameLayer::createGroundLayer(ground, line);
     }
 };
 
@@ -403,15 +409,6 @@ class $modify(EndLevelLayer)
     }
 };
 
-class $modify(RingObject)
-{
-    void spawnCircle() {
-        if (noEffect)
-            this->m_hasNoEffects = true;
-        RingObject::spawnCircle();
-    }
-};
-
 class $modify(PlayerObject)
 {
     void bumpPlayer(float bumpMod, int objectType, bool noEffects, GameObject* object)
@@ -426,52 +423,16 @@ class $modify(PlayerObject)
         PlayerObject::bumpPlayer(bumpMod, objectType, noEffects, object);
     }
 
-    void playBumpEffect(int objectType, GameObject* player) {
-        if (noEffect)
-            return;
-        PlayerObject::playBumpEffect(objectType, player);
-    }
-
     void playDeathEffect() {
         if (noDeathEffect)
             return;
         PlayerObject::playDeathEffect();
     }
 
-    void startDashing(DashRingObject* object) {
+    void stopDashing() {
         if (noEffect)
-            m_playEffects = false;
-        PlayerObject::startDashing(object);
-    }
-
-    void updateDashAnimation() {
-        if (noEffect)
-            return;
-        PlayerObject::updateDashAnimation();
-    }
-
-    void spawnDualCircle() {
-        if (noEffect)
-            return;
-      PlayerObject::spawnDualCircle();
-    }
-
-    void spawnPortalCircle(ccColor3B color, float startRadius) {
-        if (noEffect)
-            return;
-        PlayerObject::spawnPortalCircle(color, startRadius);
-    }
-
-    void spawnScaleCircle() {
-        if (noEffect)
-            return;
-        PlayerObject::spawnScaleCircle();
-    }
-
-    void spawnCircle() {
-        if (noEffect)
-            return;
-        PlayerObject::spawnCircle();
+            m_dashFireSprite->setScale(0.f);
+        PlayerObject::stopDashing();
     }
 
     void playSpiderDashEffect(CCPoint from, CCPoint to) {
@@ -487,15 +448,6 @@ class $modify(EffectGameObject)
         if (noEffect)
             return;
         EffectGameObject::playTriggerEffect();
-    }
-};
-
-class $modify(GameObject)
-{
-    void playShineEffect() {
-        if (noEffect)
-            return;
-        GameObject::playShineEffect();
     }
 };
 
@@ -659,12 +611,6 @@ $on_mod(Loaded)
                 ImGui::Checkbox("Swift", &flipOnDeathSwift);
                 if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("flipOnDeathSwift", flipOnDeathSwift); }
             }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Instead of clicking or releasing, do both.");
-                ImGui::EndTooltip();
-            }
             #endif
             ImGui::End();
 
@@ -805,6 +751,12 @@ $on_mod(Loaded)
                     zoomAnchorY = std::min(zoomAnchorY, 1.f);
                     Mod::get()->setSavedValue<float>("zoomAnchorY", zoomAnchorY);
                 }
+
+                ImGui::Checkbox("Anchor P1", &zoomOnP1);
+                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("zoomOnP1", zoomOnP1); }
+
+                ImGui::Checkbox("Anchor P2", &zoomOnP2);
+                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("zoomOnP2", zoomOnP2); }
             }
 
             ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
