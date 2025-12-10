@@ -2,6 +2,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GJBaseGameLayer.hpp>
 #include <Geode/binding/PauseLayer.hpp>
+#include <Geode/binding/PlayLayer.hpp>
 #include <Geode/binding/RingObject.hpp>
 #include <algorithm>
 #include <imgui-cocos.hpp>
@@ -50,6 +51,10 @@ bool restartFirstFrame = Mod::get()->getSavedValue<bool>("pauseFirstTick", false
 bool autoStraightFly = Mod::get()->getSavedValue<bool>("autoStraightFly", false);
 double autoStraightFlyThreshold = Mod::get()->getSavedValue<bool>("autoStraightFlyThreshold", 0);
 bool layoutMode = Mod::get()->getSavedValue<bool>("layoutMode", false);
+bool zoomEnabled = Mod::get()->getSavedValue<bool>("zoomEnabled", false);
+double zoom = Mod::get()->getSavedValue<double>("zoom", 1);
+float zoomAnchorX = Mod::get()->getSavedValue<float>("zoomAnchorX", 0.5);
+float zoomAnchorY = Mod::get()->getSavedValue<float>("zoomAnchorY", 0.5);
 
 class $modify(GJBaseGameLayer)
 {
@@ -76,6 +81,20 @@ class $modify(GJBaseGameLayer)
         }
 
         GJBaseGameLayer::processCommands(dt);
+        
+        if (zoomEnabled)
+        {
+            if (PlayLayer::get())
+            {
+                CCScene::get()->getChildByID("PlayLayer")->setAnchorPoint({zoomAnchorX, zoomAnchorY});
+                CCScene::get()->getChildByID("PlayLayer")->setScale(zoom);
+            }
+        }
+        else
+        {
+            if (PlayLayer::get())
+                CCScene::get()->getChildByID("PlayLayer")->setScale(1);
+        }
     }
 
     void playExitDualEffect(PlayerObject* player)
@@ -127,8 +146,8 @@ class $modify(GJBaseGameLayer)
 
     void lightningFlash(CCPoint from, CCPoint to, ccColor3B color, float lineWidth, float duration, int displacement, bool flash, float opacity) {
         if (noEffect)
-        return;
-    GJBaseGameLayer::lightningFlash(from, to, color, lineWidth, duration, displacement, flash, opacity);
+            return;
+        GJBaseGameLayer::lightningFlash(from, to, color, lineWidth, duration, displacement, flash, opacity);
     }
 
     void teleportPlayer(TeleportPortalObject* object, PlayerObject* player) {
@@ -138,7 +157,7 @@ class $modify(GJBaseGameLayer)
     }
 
     void updateColor(ccColor3B& color, float fadeTime, int colorID, bool blending, float opacity, ccHSVValue& copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject* callerObject, int unk1, int unk2) {
-        if (!PlayLayer::get() || m_isEditor || !layoutMode)
+        if (!PlayLayer::get() || !layoutMode)
             return GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
 
         switch (colorID)
@@ -177,7 +196,7 @@ class $modify(GJBaseGameLayer)
     }
 
     void createBackground(int background) {
-        if (layoutMode)
+        if (layoutMode && PlayLayer::get())
             background = 13;
         GJBaseGameLayer::createBackground(background);
     }
@@ -185,7 +204,7 @@ class $modify(GJBaseGameLayer)
 
 class $modify(ShaderLayer) {
     void performCalculations() {
-        if (layoutMode)
+        if (layoutMode && PlayLayer::get())
             return;
         ShaderLayer::performCalculations();
     }
@@ -211,10 +230,13 @@ class $modify(PlayLayer)
 {
     void addObject(GameObject* object)
     {
-        if (!layoutMode)
+        if (noEffect)
+            object->m_hasNoEffects = true;
+        
+        if (!layoutMode || !PlayLayer::get())
             return PlayLayer::addObject(object);
         
-        static std::unordered_set<int> filter = { 16, 17, 221, 743, 744, 899, 900, 915, 1006, 32, 33, 899, 900, 29, 30, 104, 105, 717, 718, 1007, 1520, 2903, 3029, 3030, 3031, 2999, 3606, 3612, 3009, 3010, 3014, 3015, 3021, 3020, 1818, 1819, 32, 33, 1612, 1613, 3608};
+        static std::unordered_set<int> filter = { 2015, 16, 17, 221, 743, 744, 899, 900, 915, 1006, 32, 33, 899, 900, 29, 30, 104, 105, 717, 718, 1007, 1520, 2903, 3029, 3030, 3031, 2999, 3606, 3612, 3009, 3010, 3014, 3015, 3021, 3020, 1818, 1819, 32, 33, 1612, 1613, 3608};
         if (filter.contains(object->m_objectID))
         {
             object->m_isHide = true;
@@ -418,7 +440,7 @@ class $modify(PlayerObject)
 
     void startDashing(DashRingObject* object) {
         if (noEffect)
-            m_hasNoEffects = true;
+            m_playEffects = false;
         PlayerObject::startDashing(object);
     }
 
@@ -501,7 +523,7 @@ $execute
 
 $on_mod(Loaded)
 {
-    ImGuiCocos::get().setup([] {
+    ImGuiCocos::get().setup([&] {
         auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 18.0f);
         #ifdef GEODE_IS_MOBILE
         font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 36.0f);
@@ -521,20 +543,17 @@ $on_mod(Loaded)
             style.WindowRounding = 12.0f;
             #endif
             style.PopupBorderSize = 0.f;
-            style.Colors[ImGuiCol_WindowBg] = ImVec4(0.05f, 0.016f, 0.025f, 0.9f);
-            style.Colors[ImGuiCol_PopupBg] = ImVec4(0.05f, 0.016f, 0.025f, 0.9f);
+            style.Colors[ImGuiCol_WindowBg] = ImVec4(0.025f, 0.025f, 0.025f, 0.9f);
+            style.Colors[ImGuiCol_PopupBg] = ImVec4(0.025f, 0.025f, 0.025f, 0.9f);
             style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
+            style.Colors[ImGuiCol_TitleBg] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
             style.Colors[ImGuiCol_CheckMark] = ImVec4(0.85f, 0.2f, 0.35f, 1.0f);
             style.Colors[ImGuiCol_Button] = ImVec4(0.5f, 0.16f, 0.25f, 0.4f);
             style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
             style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
             style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(1.f, 0.25f, 0.4f, 0.33f);
             
-            ImGui::SetNextWindowSizeConstraints(ImVec2(450.f, -1.0f), ImVec2(INFINITY, -1.0f));
-            #ifdef GEODE_IS_MOBILE
-            ImGui::SetNextWindowSizeConstraints(ImVec2(900.f, -1.0f), ImVec2(INFINITY, -1.0f));
-            #endif
-            ImGui::Begin("Scarlet Utils", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Begin("Gameplay", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
             #ifdef GEODE_IS_WINDOWS
             ImGui::Checkbox("Auto Backstep On Death", &preventDeath);
@@ -612,10 +631,12 @@ $on_mod(Loaded)
             if (ImGui::ArrowButton("Straight Fly Options", autoStraightFlyOptions ? ImGuiDir_Down : ImGuiDir_Right)) autoStraightFlyOptions = !autoStraightFlyOptions;
             
             if (autoStraightFlyOptions) {
-                ImGui::InputDouble("Y Velocity Threshold", &autoStraightFlyThreshold, 0.01, 0.01, "%.2f");
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<double>("autoStraightFlyThreshold", autoStraightFlyThreshold); }
+                ImGui::InputDouble("Y Velocity Threshold", &autoStraightFlyThreshold, 0.05, 0.05, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    autoStraightFlyThreshold = std::max(autoStraightFlyThreshold, 0.0);
+                    Mod::get()->setSavedValue<double>("autoStraightFlyThreshold", autoStraightFlyThreshold);
+                }
             }
-            autoStraightFlyThreshold = std::max(autoStraightFlyThreshold, 0.0);
 
             #ifdef GEODE_IS_WINDOWS
             ImGui::Checkbox("Flip Input On Death", &flipOnDeath);
@@ -645,6 +666,9 @@ $on_mod(Loaded)
                 ImGui::EndTooltip();
             }
             #endif
+            ImGui::End();
+
+            ImGui::Begin("Visual", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
             ImGui::Checkbox("Level Fade In/Out", &fadeLevel);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("fadeLevel", fadeLevel); }
@@ -661,11 +685,17 @@ $on_mod(Loaded)
             if (ImGui::ArrowButton("Level Fade Options", levelFadeOptions ? ImGuiDir_Down : ImGuiDir_Right)) levelFadeOptions = !levelFadeOptions;
             
             if (levelFadeOptions) {
-                ImGui::InputDouble("Level Fade In (s)", &fadeLevelInDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<double>("fadeLevelInDuration", fadeLevelInDuration); }
+                ImGui::InputDouble("Fade In (Level)", &fadeLevelInDuration, 0.1, 0.1, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    fadeLevelInDuration = std::max(fadeLevelInDuration, 0.0);
+                    Mod::get()->setSavedValue<double>("fadeLevelInDuration", fadeLevelInDuration);
+                }
 
-                ImGui::InputDouble("Level Fade Out (s)", &fadeLevelOutDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<double>("fadeLevelOutDuration", fadeLevelOutDuration); }
+                ImGui::InputDouble("Fade Out (Level)", &fadeLevelOutDuration, 0.1, 0.1, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    fadeLevelOutDuration = std::max(fadeLevelOutDuration, 0.0);
+                    Mod::get()->setSavedValue<double>("fadeLevelOutDuration", fadeLevelOutDuration);
+                }
             }
 
             ImGui::Checkbox("Audio Fade In/Out", &fadeAudio);
@@ -683,11 +713,17 @@ $on_mod(Loaded)
             if (ImGui::ArrowButton("Audio Fade Options", audioFadeOptions ? ImGuiDir_Down : ImGuiDir_Right)) audioFadeOptions = !audioFadeOptions;
 
             if (audioFadeOptions) {
-                ImGui::InputDouble("Audio Fade In (s)", &fadeAudioInDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<double>("fadeAudioInDuration", fadeAudioInDuration); }
+                ImGui::InputDouble("Fade In (Audio)", &fadeAudioInDuration, 0.1, 0.1, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    fadeAudioInDuration = std::max(fadeAudioInDuration, 0.0);
+                    Mod::get()->setSavedValue<double>("fadeAudioInDuration", fadeAudioInDuration);
+                }
 
-                ImGui::InputDouble("Audio Fade Out (s)", &fadeAudioOutDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<double>("fadeAudioOutDuration", fadeAudioOutDuration); }
+                ImGui::InputDouble("Fade Out (Audio)", &fadeAudioOutDuration, 0.1, 0.1, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    fadeAudioOutDuration = std::max(fadeAudioOutDuration, 0.0);
+                    Mod::get()->setSavedValue<double>("fadeAudioOutDuration", fadeAudioOutDuration);
+                }
             }
 
             ImGui::Checkbox("Hide Endscreen", &hideEndscreen);
@@ -733,6 +769,42 @@ $on_mod(Loaded)
                 ImGui::BeginTooltip();
                 ImGui::Text("Hides decoration from levels.");
                 ImGui::EndTooltip();
+            }
+
+            ImGui::Checkbox("Zoom", &zoomEnabled);
+            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("zoomEnabled", zoomEnabled); }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::BeginTooltip();
+                ImGui::Text("Zooms in the screen.");
+                ImGui::EndTooltip();
+            }
+
+            static bool zoomOptions = false;
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("Zoom Options", zoomOptions ? ImGuiDir_Down : ImGuiDir_Right)) zoomOptions = !zoomOptions;
+            
+            if (zoomOptions)
+            {
+                ImGui::InputDouble("Zoom Amount", &zoom, 0.25, 0.25, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    zoom = std::max(zoom, 0.5);
+                    Mod::get()->setSavedValue<double>("zoom", zoom);
+                }
+
+                ImGui::InputFloat("Anchor X", &zoomAnchorX, 0.05, 0.05, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    zoomAnchorX = std::max(zoomAnchorX, 0.f);
+                    zoomAnchorX = std::min(zoomAnchorX, 1.f);
+                    Mod::get()->setSavedValue<float>("zoomAnchorX", zoomAnchorX);
+                }
+
+                ImGui::InputFloat("Anchor Y", &zoomAnchorY, 0.05, 0.05, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    zoomAnchorY = std::max(zoomAnchorY, 0.f);
+                    zoomAnchorY = std::min(zoomAnchorY, 1.f);
+                    Mod::get()->setSavedValue<float>("zoomAnchorY", zoomAnchorY);
+                }
             }
 
             ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
