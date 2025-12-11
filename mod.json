@@ -8,7 +8,7 @@
 	},
 	"id": "scarlet.utils",
 	"name": "Scarlet Utils",
-	"version": "v1.3.0",
+	"version": "v1.3.1",
 	"developer": "scarlet",
 	"description": "Tools for botting and showcasing.",
 	"dependencies":

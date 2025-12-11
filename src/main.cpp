@@ -60,6 +60,8 @@ bool straightUfoP1 = Mod::get()->getSavedValue<bool>("straightUfoP1", false);
 bool straightUfoP2 = Mod::get()->getSavedValue<bool>("straightUfoP2", false);
 double straightUfoTargetP1 = Mod::get()->getSavedValue<double>("straightUfoTargetP1", 135.0);
 double straightUfoTargetP2 = Mod::get()->getSavedValue<double>("straightUfoTargetP2", 135.0);
+double straightUfoThresholdP1 = Mod::get()->getSavedValue<double>("straightUfoThresholdP1", 0.0);
+double straightUfoThresholdP2 = Mod::get()->getSavedValue<double>("straightUfoThresholdP2", 0.0);
 
 class $modify(GJBaseGameLayer)
 {
@@ -69,20 +71,20 @@ class $modify(GJBaseGameLayer)
         if (straightUfo)
         {
             if (straightUfoP1 &&
-            ((m_player1->getPositionY() < straightUfoTargetP1 && m_player1->m_yVelocity < 0 && !m_player1->m_isUpsideDown) ||
-            (m_player1->getPositionY() > straightUfoTargetP1 && m_player1->m_yVelocity > 0 && !m_player1->m_isUpsideDown) ||
-            (m_player1->getPositionY() > straightUfoTargetP1 && m_player1->m_yVelocity > 0 && m_player1->m_isUpsideDown) ||
-            (m_player1->getPositionY() < straightUfoTargetP1 && m_player1->m_yVelocity < 0 && m_player1->m_isUpsideDown))
+            ((m_player1->getPositionY() < straightUfoTargetP1 - straightUfoThresholdP1 && m_player1->m_yVelocity <= 0 && !m_player1->m_isUpsideDown) ||
+            (m_player1->getPositionY() > straightUfoTargetP1 + straightUfoThresholdP1 && m_player1->m_yVelocity > 0 && !m_player1->m_isUpsideDown) ||
+            (m_player1->getPositionY() > straightUfoTargetP1 + straightUfoThresholdP1 && m_player1->m_yVelocity >= 0 && m_player1->m_isUpsideDown) ||
+            (m_player1->getPositionY() < straightUfoTargetP1 - straightUfoThresholdP1 && m_player1->m_yVelocity < 0 && m_player1->m_isUpsideDown))
             ) {
                 this->queueButton(1, false, false);
                 this->queueButton(1, true, false);
             }
 
             if (straightUfoP2 &&
-            ((m_player2->getPositionY() < straightUfoTargetP2 && m_player2->m_yVelocity < 0 && !m_player2->m_isUpsideDown) ||
-            (m_player2->getPositionY() > straightUfoTargetP2 && m_player2->m_yVelocity > 0 && !m_player2->m_isUpsideDown) ||
-            (m_player2->getPositionY() > straightUfoTargetP2 && m_player2->m_yVelocity > 0 && m_player2->m_isUpsideDown) ||
-            (m_player2->getPositionY() < straightUfoTargetP2 && m_player2->m_yVelocity < 0 && m_player2->m_isUpsideDown))
+            ((m_player2->getPositionY() < straightUfoTargetP2 - straightUfoThresholdP2 && m_player2->m_yVelocity <= 0 && !m_player2->m_isUpsideDown) ||
+            (m_player2->getPositionY() > straightUfoTargetP2 + straightUfoThresholdP2 && m_player2->m_yVelocity > 0 && !m_player2->m_isUpsideDown) ||
+            (m_player2->getPositionY() > straightUfoTargetP2 + straightUfoThresholdP2 && m_player2->m_yVelocity >= 0 && m_player2->m_isUpsideDown) ||
+            (m_player2->getPositionY() < straightUfoTargetP2 - straightUfoThresholdP2 && m_player2->m_yVelocity < 0 && m_player2->m_isUpsideDown))
             ) {
                 this->queueButton(1, false, true);
                 this->queueButton(1, true, true);
@@ -231,6 +233,12 @@ class $modify(GameObject)
         else
             m_isHide = false;
     }
+
+    void playShineEffect() {
+        if (noEffect)
+            return;
+        GameObject::playShineEffect();
+    }
 };
     
 
@@ -238,7 +246,7 @@ class $modify(PlayLayer)
 {
     void addObject(GameObject* object)
     {
-        if (noEffect)
+        if (noEffect && object->m_objectType != GameObjectType::InverseMirrorPortal && object->m_objectType != GameObjectType::NormalMirrorPortal)
             object->m_hasNoEffects = true;
         
         if (!layoutMode || !PlayLayer::get())
@@ -413,6 +421,12 @@ class $modify(EndLevelLayer)
 
 class $modify(PlayerObject)
 {
+    void spawnPortalCircle(ccColor3B color, float startRadius) {
+        if (noEffect)
+            return;
+        PlayerObject::spawnPortalCircle(color, startRadius);
+    }
+
     void bumpPlayer(float bumpMod, int objectType, bool noEffects, GameObject* object)
     {
         if (objectType == 9 || objectType == 8 || objectType == 34)
@@ -594,7 +608,7 @@ $on_mod(Loaded)
                 ImGui::Checkbox("Player 1##ship", &straightFlyP1);
                 if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP1", straightFlyP1); }
 
-                ImGui::InputDouble("Velocity Threshold##p1ship", &straightFlyThresholdP1, 0.25, 0.25, "%.2f");
+                ImGui::InputDouble("Threshold##p1ship", &straightFlyThresholdP1, 0.25, 0.25, "%.2f");
                 if (ImGui::IsItemEdited()) {
                     straightFlyThresholdP1 = std::max(straightFlyThresholdP1, 0.0);
                     Mod::get()->setSavedValue<double>("straightFlyThresholdP1", straightFlyThresholdP1);
@@ -603,7 +617,7 @@ $on_mod(Loaded)
                 ImGui::Checkbox("Player 2##ship", &straightFlyP2);
                 if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP2", straightFlyP2); }
 
-                ImGui::InputDouble("Velocity Threshold##p2ship", &straightFlyThresholdP2, 0.25, 0.25, "%.2f");
+                ImGui::InputDouble("Threshold##p2ship", &straightFlyThresholdP2, 0.25, 0.25, "%.2f");
                 if (ImGui::IsItemEdited()) {
                     straightFlyThresholdP2 = std::max(straightFlyThresholdP2, 0.0);
                     Mod::get()->setSavedValue<double>("straightFlyThresholdP2", straightFlyThresholdP2);
@@ -628,19 +642,31 @@ $on_mod(Loaded)
                 ImGui::Checkbox("Player 1##ufo", &straightUfoP1);
                 if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP1", straightUfoP1); }
 
-                ImGui::InputDouble("Y Position Target##p1ufo", &straightUfoTargetP1, 5.0, 5.0, "%.0f");
+                ImGui::InputDouble("Y Position Target##p1ufo", &straightUfoTargetP1, 2.5, 2.5, "%.0f");
                 if (ImGui::IsItemEdited()) {
                     straightUfoTargetP1 = std::max(straightUfoTargetP1, 0.0);
                     Mod::get()->setSavedValue<double>("straightUfoTargetP1", straightUfoTargetP1);
                 }
 
+                ImGui::InputDouble("Threshold##p1ufo", &straightUfoThresholdP1, 0.25, 0.25, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    straightUfoThresholdP1 = std::max(straightUfoThresholdP1, 0.0);
+                    Mod::get()->setSavedValue<double>("straightUfoThresholdP1", straightUfoThresholdP1);
+                }
+
                 ImGui::Checkbox("Player 2##ufo", &straightUfoP2);
                 if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP2", straightUfoP2); }
 
-                ImGui::InputDouble("Y Position Target##p2ufo", &straightUfoTargetP2, 5.0, 5.0, "%.0f");
+                ImGui::InputDouble("Y Position Target##p2ufo", &straightUfoTargetP2, 2.5, 2.5, "%.0f");
                 if (ImGui::IsItemEdited()) {
                     straightUfoTargetP2 = std::max(straightUfoTargetP2, 0.0);
                     Mod::get()->setSavedValue<double>("straightUfoTargetP2", straightUfoTargetP2);
+                }
+
+                ImGui::InputDouble("Threshold##p2ufo", &straightUfoThresholdP2, 0.25, 0.25, "%.2f");
+                if (ImGui::IsItemEdited()) {
+                    straightUfoThresholdP2 = std::max(straightUfoThresholdP2, 0.0);
+                    Mod::get()->setSavedValue<double>("straightUfoThresholdP2", straightUfoThresholdP2);
                 }
             }
 
