@@ -1,11 +1,14 @@
-#include "Geode/ui/Layout.hpp"
+#include "Geode/modify/Modify.hpp"
 #include <Geode/Enums.hpp>
 #include <Geode/Geode.hpp>
+#include <Geode/binding/CCCircleWave.hpp>
 #include <Geode/binding/GJBaseGameLayer.hpp>
 #include <Geode/binding/PauseLayer.hpp>
 #include <Geode/binding/PlayLayer.hpp>
 #include <Geode/binding/RingObject.hpp>
+#include <Geode/binding/UILayer.hpp>
 #include <algorithm>
+#include <climits>
 #include <imgui-cocos.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PauseLayer.hpp>
@@ -16,6 +19,8 @@
 #include <Geode/modify/RingObject.hpp>
 #include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/ShaderLayer.hpp>
+#include <Geode/modify/CCCircleWave.hpp>
+#include <Geode/modify/CCParticleSystem.hpp>
 #include <geode.custom-keybinds/include/Keybinds.hpp>
 #include <imgui.h>
 #include <matjson/reflect.hpp>
@@ -34,38 +39,63 @@ double fadeLevelOutDuration = Mod::get()->getSavedValue<double>("fadeLevelOutDur
 bool fadeAudio = Mod::get()->getSavedValue<bool>("fadeAudio", false);
 double fadeAudioInDuration = Mod::get()->getSavedValue<double>("fadeAudioInDuration", 0.5);
 double fadeAudioOutDuration = Mod::get()->getSavedValue<double>("fadeAudioOutDuration", 1.0);
-bool flipOnDeath = Mod::get()->getSavedValue<bool>("flipOnDeath", false);
-bool flipOnDeathLogicP1 = true;
-bool flipOnDeathLogicP2 = true;
-bool autoUnfreeze = Mod::get()->getSavedValue<bool>("autoUnfreeze", false);
-bool flipOnDeathSwift = Mod::get()->getSavedValue<bool>("flipOnDeathSwift", false);
-bool clickGreenDashOrbs = Mod::get()->getSavedValue<bool>("clickGreenDashOrbs", false);
+bool flipOnDeath = false;
+bool flipOnDeathLogicP1 = false;
+bool flipOnDeathLogicP2 = false;
+bool autoUnfreeze = false;
+bool flipOnDeathSwift = false;
+bool clickGreenDashOrbs = false;
 bool noDeathEffect = Mod::get()->getSavedValue<bool>("noDeathEffect", false);
 bool hideEndscreen = Mod::get()->getSavedValue<bool>("hideEndscreen", false);
 bool hideNewBest = Mod::get()->getSavedValue<bool>("hideNewBest", false);
-bool blackOrbUfo = Mod::get()->getSavedValue<bool>("blackOrbUfo", false);
-bool clickBlackOrbs = Mod::get()->getSavedValue<bool>("clickBlackOrbs", false);
+bool blackOrbUfo = false;
+bool clickBlackOrbs = false;
 bool noEffect = Mod::get()->getSavedValue<bool>("noEffect", false);
-bool clickJumpPads = Mod::get()->getSavedValue<bool>("clickJumpPads", false);
+bool clickJumpPads = false;
 bool clickedJumpPad = false;
-bool restartFirstFrame = Mod::get()->getSavedValue<bool>("pauseFirstTick", false);
-bool straightFly = Mod::get()->getSavedValue<bool>("straightFly", false);
+bool restartFirstFrame = false;
+bool straightFly = false;
 bool straightFlyP1 = Mod::get()->getSavedValue<bool>("straightFlyP1", false);
 bool straightFlyP2 = Mod::get()->getSavedValue<bool>("straightFlyP2", false);
 double straightFlyThresholdP1 = Mod::get()->getSavedValue<double>("straightFlyThresholdP1", 0.0);
 double straightFlyThresholdP2 = Mod::get()->getSavedValue<double>("straightFlyThresholdP2", 0.0);
-bool layoutMode = Mod::get()->getSavedValue<bool>("layoutMode", false);
-bool straightUfo = Mod::get()->getSavedValue<bool>("straightUfo", false);
+bool layoutMode = false;
+bool straightUfo = false;
 bool straightUfoP1 = Mod::get()->getSavedValue<bool>("straightUfoP1", false);
 bool straightUfoP2 = Mod::get()->getSavedValue<bool>("straightUfoP2", false);
 double straightUfoTargetP1 = Mod::get()->getSavedValue<double>("straightUfoTargetP1", 135.0);
 double straightUfoTargetP2 = Mod::get()->getSavedValue<double>("straightUfoTargetP2", 135.0);
 double straightUfoThresholdP1 = Mod::get()->getSavedValue<double>("straightUfoThresholdP1", 0.0);
 double straightUfoThresholdP2 = Mod::get()->getSavedValue<double>("straightUfoThresholdP2", 0.0);
+bool maintainGravity = Mod::get()->getSavedValue<bool>("maintainGravity", false);
+bool maintainGravityP1 = Mod::get()->getSavedValue<bool>("maintainGravityP1", false);
+bool maintainGravityP2 = Mod::get()->getSavedValue<bool>("maintainGravityP2", false);
+bool autoclickerP1 = Mod::get()->getSavedValue<bool>("autoclickerP1", false);
+bool autoclickerP2 = Mod::get()->getSavedValue<bool>("autoclickerP2", false);
+int autoclickerEveryP1 = 1;
+int autoclickerEveryP2 = 1;
+int autoclickerHoldP1 = 1;
+int autoclickerHoldP2 = 1;
+int autoclickerTimerP1 = 0;
+int autoclickerTimerP2 = 0;
+bool autoclickerHoldingP1 = false;
+bool autoclickerHoldingP2 = false;
+bool autoclickerSwiftP1 = false;
+bool autoclickerSwiftP2 = false;
+bool autoclickerEndP1 = false;
+bool autoclickerEndP2 = false;
+
+class $modify(CCCircleWave)
+{
+    void draw() {
+        if (!noEffect) CCCircleWave::draw();
+    }
+};
 
 class $modify(GJBaseGameLayer)
 {
-    void processCommands(float dt) {
+    void processCommands(float dt)
+    {
         clickedJumpPad = false;
 
         if (straightUfo)
@@ -76,8 +106,8 @@ class $modify(GJBaseGameLayer)
             (m_player1->getPositionY() > straightUfoTargetP1 + straightUfoThresholdP1 && m_player1->m_yVelocity >= 0 && m_player1->m_isUpsideDown) ||
             (m_player1->getPositionY() < straightUfoTargetP1 - straightUfoThresholdP1 && m_player1->m_yVelocity < 0 && m_player1->m_isUpsideDown))
             ) {
-                this->queueButton(1, false, false);
-                this->queueButton(1, true, false);
+                queueButton(1, false, false);
+                queueButton(1, true, false);
             }
 
             if (straightUfoP2 &&
@@ -86,8 +116,8 @@ class $modify(GJBaseGameLayer)
             (m_player2->getPositionY() > straightUfoTargetP2 + straightUfoThresholdP2 && m_player2->m_yVelocity >= 0 && m_player2->m_isUpsideDown) ||
             (m_player2->getPositionY() < straightUfoTargetP2 - straightUfoThresholdP2 && m_player2->m_yVelocity < 0 && m_player2->m_isUpsideDown))
             ) {
-                this->queueButton(1, false, true);
-                this->queueButton(1, true, true);
+                queueButton(1, false, true);
+                queueButton(1, true, true);
             }
         }
 
@@ -99,7 +129,7 @@ class $modify(GJBaseGameLayer)
                 (m_player1->getYVelocity() > straightFlyThresholdP1 && !m_player1->m_holdingButtons[1] && m_player1->m_isUpsideDown) ||
                 (m_player1->getYVelocity() < -straightFlyThresholdP1 && m_player1->m_holdingButtons[1] && m_player1->m_isUpsideDown))
             )
-                this->queueButton(1, !m_player1->m_holdingButtons[1], false);
+                queueButton(1, !m_player1->m_holdingButtons[1], false);
 
             if (straightFlyP2 &&
                 ((m_player2->getYVelocity() < -straightFlyThresholdP2 && !m_player2->m_holdingButtons[1] && !m_player2->m_isUpsideDown) ||
@@ -107,10 +137,85 @@ class $modify(GJBaseGameLayer)
                 (m_player2->getYVelocity() > straightFlyThresholdP2 && !m_player2->m_holdingButtons[1] && m_player2->m_isUpsideDown) ||
                 (m_player2->getYVelocity() < -straightFlyThresholdP2 && m_player2->m_holdingButtons[1] && m_player2->m_isUpsideDown))
             )
-                this->queueButton(1, !m_player2->m_holdingButtons[1], true);
+                queueButton(1, !m_player2->m_holdingButtons[1], true);
+        }
+
+        if (autoclickerP1 || autoclickerEndP1)
+        {
+            if (!autoclickerHoldingP1 && autoclickerTimerP1 >= autoclickerEveryP1 && !autoclickerEndP1)
+            {
+                if (!autoclickerSwiftP1)
+                    queueButton(1, true, false);
+                else
+                {
+                    queueButton(1, true, false);
+                    queueButton(1, false, false);
+                }
+                autoclickerHoldingP1 = true;
+                autoclickerTimerP1 = 0;
+            }
+            if (autoclickerHoldingP1 && autoclickerTimerP1 >= autoclickerHoldP1 || autoclickerEndP1)
+            {
+                if (!autoclickerSwiftP1)
+                    queueButton(1, false, false);
+                else
+                {
+                    queueButton(1, true, false);
+                    queueButton(1, false, false);
+                }
+                autoclickerHoldingP1 = false;
+                autoclickerTimerP1 = 0;
+            }
+            autoclickerTimerP1++;
+            autoclickerEndP1 = false;
+        }
+        if (autoclickerP2 || autoclickerEveryP2)
+        {
+            if (!autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerEveryP2 && !autoclickerEveryP2)
+            {
+                if (!autoclickerSwiftP2)
+                    queueButton(1, true, true);
+                else
+                {
+                    queueButton(1, true, true);
+                    queueButton(1, false, true);
+                }
+                autoclickerHoldingP2 = true;
+                autoclickerTimerP2 = 0;
+            }
+            if (autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerHoldP2 || autoclickerEndP2)
+            {
+                if (!autoclickerSwiftP2)
+                    queueButton(1, false, true);
+                else
+                {
+                    queueButton(1, true, true);
+                    queueButton(1, false, true);
+                }
+                autoclickerHoldingP2 = false;
+                autoclickerTimerP2 = 0;
+            }
+            autoclickerTimerP2++;
+            autoclickerEndP2 = false;
         }
 
         GJBaseGameLayer::processCommands(dt);
+
+        if (maintainGravity && maintainGravityP1 && !PlayLayer::get()->m_levelEndAnimationStarted)
+        {
+            while (m_player1->m_isUpsideDown == (m_uiLayer->m_p1Jumping == m_player1->m_jumpBuffered) && !m_player1->m_controlsDisabled)
+            {
+                this->handleButton(m_uiLayer->m_p1Jumping ^ m_player1->m_isUpsideDown, 1, true);
+            }
+        }
+
+        if (maintainGravity && maintainGravityP2 && !PlayLayer::get()->m_levelEndAnimationStarted)
+        {
+            while (m_player2->m_isUpsideDown == (m_uiLayer->m_p2Jumping == m_player2->m_jumpBuffered) && !m_player2->m_controlsDisabled)
+            {
+                this->handleButton(m_uiLayer->m_p2Jumping ^ m_player2->m_isUpsideDown, 1, false);
+            }
+        }
     }
 
     void playExitDualEffect(PlayerObject* player)
@@ -120,6 +225,40 @@ class $modify(GJBaseGameLayer)
         GJBaseGameLayer::playExitDualEffect(player);
     }
 
+    /*
+    void handleButton(bool down, int button, bool isPlayer1)
+    {
+        auto player = isPlayer1 ?  m_player1 : m_player2;
+
+        if (clickGreenDashOrbs && down)
+        {
+            for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
+            {
+                if (i->m_objectType == GameObjectType::DashRing)
+                {
+                    GJBaseGameLayer::handleButton(true, 1, !player->m_isSecondPlayer);
+                    GJBaseGameLayer::handleButton(false, 1, !player->m_isSecondPlayer);
+                    
+                }
+            }
+        }
+
+        if ((blackOrbUfo || straightUfo || clickBlackOrbs) && down)
+        {
+            for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
+            {
+                if (i->m_objectType == GameObjectType::DropRing && (player->m_yVelocity <= 0 && !player->m_isUpsideDown) || (player->m_yVelocity >= 0 && player->m_isUpsideDown) || clickBlackOrbs)
+                {
+                    GJBaseGameLayer::handleButton(true, 1, !player->m_isSecondPlayer);
+                    GJBaseGameLayer::handleButton(false, 1, !player->m_isSecondPlayer);
+                }
+            }
+        }
+        GJBaseGameLayer::handleButton(down, button, isPlayer1);
+    }
+    // */
+    
+    // /*
     static void onModify(auto& self) {
         if (!self.setHookPriorityPre("GJBaseGameLayer::processQueuedButtons", Priority::First)) {
             geode::log::warn("Failed to set hook priority.");
@@ -159,7 +298,8 @@ class $modify(GJBaseGameLayer)
         }
         GJBaseGameLayer::processQueuedButtons();
     }
-
+    // */
+    
     void updateColor(ccColor3B& color, float fadeTime, int colorID, bool blending, float opacity, ccHSVValue& copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject* callerObject, int unk1, int unk2) {
         if (!PlayLayer::get() || !layoutMode)
             return GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
@@ -312,19 +452,26 @@ class $modify(PlayLayer)
             }
         }
 
-        #ifdef GEODE_IS_WINDOWS
         if (preventDeath)
-        Loader::get()->queueInMainThread([] {
-            SendMessage(hwnd, WM_KEYDOWN, 0x42, 0);
-            SendMessage(hwnd, WM_KEYUP, 0x42, 0);
+        {
+            Loader::get()->queueInMainThread([] {
+                SendMessage(hwnd, WM_KEYDOWN, 0x42, 0);
+                SendMessage(hwnd, WM_KEYUP, 0x42, 0);
 
-            if (autoUnfreeze)
-                Loader::get()->queueInMainThread([] {
-                SendMessage(hwnd, WM_KEYDOWN, 0x56, 0);
-                SendMessage(hwnd, WM_KEYUP, 0x56, 0);
+                if (autoUnfreeze)
+                    Loader::get()->queueInMainThread([] {
+                    SendMessage(hwnd, WM_KEYDOWN, 0x56, 0);
+                    SendMessage(hwnd, WM_KEYUP, 0x56, 0);
+                });
             });
-        });
-        #endif
+        }
+
+        autoclickerP1 = false;
+        autoclickerHoldingP1 = false;
+        autoclickerTimerP1 = INT_MAX;
+        autoclickerP2 = false;
+        autoclickerHoldingP2 = false;
+        autoclickerTimerP2 = INT_MAX;
     }
 
     void applyStartFade()
@@ -541,7 +688,6 @@ $on_mod(Loaded)
             }
             
             ImGui::Checkbox("Auto Unfreeze On Death", &autoUnfreeze);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("autoUnfreeze", autoUnfreeze); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -554,7 +700,6 @@ $on_mod(Loaded)
             #endif
 
             ImGui::Checkbox("Click Green Dash Orbs", &clickGreenDashOrbs);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("clickGreenDashOrbs", clickGreenDashOrbs); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -563,7 +708,6 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Click Black Orbs", &clickBlackOrbs);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("clickBlackOrbs", clickBlackOrbs); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -572,7 +716,6 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Easy Black Orb UFO", &blackOrbUfo);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("blackOrbUfo", blackOrbUfo); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -582,7 +725,6 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Click Jump Pads", &clickJumpPads);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("clickJumpPads", clickJumpPads); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -591,7 +733,6 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Auto Straight Fly", &straightFly);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFly", straightFly); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -625,7 +766,6 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Auto Straight Ufo", &straightUfo);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfo", straightUfo); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -672,7 +812,6 @@ $on_mod(Loaded)
 
             #ifdef GEODE_IS_WINDOWS
             ImGui::Checkbox("Flip Input On Death", &flipOnDeath);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("flipOnDeath", flipOnDeath); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
@@ -689,9 +828,79 @@ $on_mod(Loaded)
 
             if (flipInputOptions) {
                 ImGui::Checkbox("Swift", &flipOnDeathSwift);
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("flipOnDeathSwift", flipOnDeathSwift); }
             }
             #endif
+            /*
+            #ifdef GEODE_IS_WINDOWS
+            ImGui::Checkbox("Maintain Gravity", &maintainGravity);
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::BeginTooltip();
+                ImGui::Text("REQUIRES ALTHOOK");
+                ImGui::EndTooltip();
+            }
+
+            static bool maintainGravityOptions = false;
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("Maintain Gravity Options", maintainGravityOptions ? ImGuiDir_Down : ImGuiDir_Right)) maintainGravityOptions = !maintainGravityOptions;
+
+            if (maintainGravityOptions) {
+                ImGui::Checkbox("P1", &maintainGravityP1);
+                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("maintainGravityP1", maintainGravityP1); }
+                ImGui::Checkbox("P2", &maintainGravityP2);
+                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("maintainGravityP2", maintainGravityP2); }
+            }
+            #endif
+            // */
+            ImGui::Checkbox("Autoclicker P1", &autoclickerP1);
+            if (ImGui::IsItemEdited()) { 
+                Mod::get()->setSavedValue<bool>("autoclickerP1", autoclickerP1);
+                autoclickerTimerP1 = INT_MAX;
+                if (!autoclickerP1)
+                    autoclickerEndP1 = true;
+                else
+                    autoclickerEndP1 = false;
+            }
+
+            static bool autoclickerP1Options = false;
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("Autoclicker P1 Options", autoclickerP1Options ? ImGuiDir_Down : ImGuiDir_Right)) autoclickerP1Options = !autoclickerP1Options;
+            
+            if (autoclickerP1Options)
+            {
+                ImGui::InputInt("Click every frames##p1", &autoclickerEveryP1);
+                if (ImGui::IsItemEdited()) { autoclickerEveryP1 = std::max(autoclickerEveryP1, 1); }
+
+                ImGui::InputInt("Hold for frames##p1", &autoclickerHoldP1);
+                if (ImGui::IsItemEdited()) { autoclickerHoldP1 = std::max(autoclickerHoldP1, 1); }
+
+                ImGui::Checkbox("Swift##autoclickP1", &autoclickerSwiftP1);
+            }
+
+            ImGui::Checkbox("Autoclicker P2", &autoclickerP2);
+            if (ImGui::IsItemEdited()) {
+                Mod::get()->setSavedValue<bool>("autoclickerP2", autoclickerP2);
+                autoclickerTimerP2 = INT_MAX;
+                if (!autoclickerP2)
+                    autoclickerEndP2 = true;
+                else
+                    autoclickerEndP2 = false;
+            }
+
+            static bool autoclickerP2Options = false;
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("Autoclicker P2 Options", autoclickerP2Options ? ImGuiDir_Down : ImGuiDir_Right)) autoclickerP2Options = !autoclickerP2Options;
+            
+            if (autoclickerP2Options)
+            {
+                ImGui::InputInt("Click every frames##p2", &autoclickerEveryP2);
+                if (ImGui::IsItemEdited()) { autoclickerEveryP2 = std::max(autoclickerEveryP2, 1); }
+
+                ImGui::InputInt("Hold for frames##p2", &autoclickerHoldP2);
+                if (ImGui::IsItemEdited()) { autoclickerHoldP2 = std::max(autoclickerHoldP2, 1); }
+
+                ImGui::Checkbox("Swift##autoclickP2", &autoclickerSwiftP2);
+            }
 
             #ifdef GEODE_IS_DESKTOP
             ImGui::End();
@@ -759,27 +968,15 @@ $on_mod(Loaded)
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
-                ImGui::Text("After level complete, dont show the statistics screen.");
+                ImGui::Text("Disables the statistics dropdown after completing a level.");
                 ImGui::EndTooltip();
             }
 
             ImGui::Checkbox("Hide New Best", &hideNewBest);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("hideNewBest", hideNewBest); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Stops the new best popup from rendering.");
-                ImGui::EndTooltip();
-            }
 
             ImGui::Checkbox("No Death Effect", &noDeathEffect);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noDeathEffect", noDeathEffect); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Stops the death effect from rendering.");
-                ImGui::EndTooltip();
-            }
 
             ImGui::Checkbox("No Effects", &noEffect);
             if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noEffect", noEffect); }
@@ -791,16 +988,8 @@ $on_mod(Loaded)
             }
 
             ImGui::Checkbox("Layout Mode", &layoutMode);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("layoutMode", layoutMode); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Hides decoration from levels.");
-                ImGui::EndTooltip();
-            }
 
             ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("restartFirstFrame", restartFirstFrame); }
             if (ImGui::IsItemHovered())
             {
                 ImGui::BeginTooltip();
