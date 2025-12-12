@@ -452,6 +452,7 @@ class $modify(PlayLayer)
             }
         }
 
+        #ifdef GEODE_IS_WINDOWS
         if (preventDeath)
         {
             Loader::get()->queueInMainThread([] {
@@ -465,6 +466,7 @@ class $modify(PlayLayer)
                 });
             });
         }
+        #endif
 
         autoclickerP1 = false;
         autoclickerHoldingP1 = false;
