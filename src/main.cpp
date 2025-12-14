@@ -172,9 +172,9 @@ class $modify(GJBaseGameLayer)
             autoclickerTimerP1++;
             autoclickerEndP1 = false;
         }
-        if (autoclickerP2 || autoclickerEveryP2)
+        if (autoclickerP2 || autoclickerEndP2)
         {
-            if (!autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerEveryP2 && !autoclickerEveryP2)
+            if (!autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerEveryP2 && !autoclickerEndP2)
             {
                 if (!autoclickerSwiftP2)
                     queueButton(1, true, true);
