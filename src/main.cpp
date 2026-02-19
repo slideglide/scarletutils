@@ -288,47 +288,47 @@ class $modify(GJBaseGameLayer)
     }
     #endif
     
-    #ifdef GEODE_IS_MOBILE
-    static void onModify(auto& self) {
-        if (!self.setHookPriorityPre("GJBaseGameLayer::processQueuedButtons", Priority::First)) {
-            geode::log::warn("Failed to set hook priority.");
-        }
-    }
+    // #ifdef GEODE_IS_MOBILE
+    // static void onModify(auto& self) {
+    //     if (!self.setHookPriorityPre("GJBaseGameLayer::processQueuedButtons", Priority::First)) {
+    //         geode::log::warn("Failed to set hook priority.");
+    //     }
+    // }
 
-    void processQueuedButtons()
-    {
-        for (auto& button : m_queuedButtons)
-        {
-            auto player = button.m_isPlayer2 ?  m_player2 : m_player1;
+    // void processQueuedButtons()
+    // {
+    //     for (auto& button : m_queuedButtons)
+    //     {
+    //         auto player = button.m_isPlayer2 ?  m_player2 : m_player1;
 
-            if (clickGreenDashOrbs && button.m_isPush)
-            {
-                for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
-                {
-                    if (i->m_objectType == GameObjectType::DashRing)
-                    {
-                        // this->queueButton(1, false, button.m_isPlayer2);
-                        // this->queueButton(1, true, button.m_isPlayer2);
+    //         if (clickGreenDashOrbs && button.m_isPush)
+    //         {
+    //             for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
+    //             {
+    //                 if (i->m_objectType == GameObjectType::DashRing)
+    //                 {
+    //                     // this->queueButton(1, false, button.m_isPlayer2);
+    //                     // this->queueButton(1, true, button.m_isPlayer2);
                         
-                    }
-                }
-            }
+    //                 }
+    //             }
+    //         }
 
-            if ((blackOrbUfo || straightUfo || clickBlackOrbs) && button.m_isPush)
-            {
-                for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
-                {
-                    if (i->m_objectType == GameObjectType::DropRing && (player->m_yVelocity <= 0 && !player->m_isUpsideDown) || (player->m_yVelocity >= 0 && player->m_isUpsideDown) || clickBlackOrbs)
-                    {
-                        // this->queueButton(1, false, button.m_isPlayer2);
-                        // this->queueButton(1, true, button.m_isPlayer2);
-                    }
-                }
-            }
-        }
-        GJBaseGameLayer::processQueuedButtons();
-    }
-    #endif
+    //         if ((blackOrbUfo || straightUfo || clickBlackOrbs) && button.m_isPush)
+    //         {
+    //             for (auto i : CCArrayExt<RingObject *>(player->m_touchingRings))
+    //             {
+    //                 if (i->m_objectType == GameObjectType::DropRing && (player->m_yVelocity <= 0 && !player->m_isUpsideDown) || (player->m_yVelocity >= 0 && player->m_isUpsideDown) || clickBlackOrbs)
+    //                 {
+    //                     // this->queueButton(1, false, button.m_isPlayer2);
+    //                     // this->queueButton(1, true, button.m_isPlayer2);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     GJBaseGameLayer::processQueuedButtons();
+    // }
+    // #endif
     
     void updateColor(ccColor3B& color, float fadeTime, int colorID, bool blending, float opacity, ccHSVValue& copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject* callerObject, int unk1, int unk2) {
         if (!PlayLayer::get() || !layoutMode)
