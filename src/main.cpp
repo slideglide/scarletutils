@@ -1,5 +1,6 @@
 #include "Geode/loader/Log.hpp"
 #include "Geode/modify/Modify.hpp"
+#include "ccTypes.h"
 #include <Geode/Enums.hpp>
 #include <Geode/Geode.hpp>
 #include <Geode/binding/CCCircleWave.hpp>
@@ -24,6 +25,7 @@
 #include <Geode/modify/CCCircleWave.hpp>
 #include <Geode/modify/CCParticleSystem.hpp>
 #include <imgui.h>
+#include <initializer_list>
 #include <matjson/reflect.hpp>
 #include <unordered_set>
 
@@ -90,6 +92,28 @@ bool autoSwift = false;
 bool extraClick = false;
 int extraClickAmount = 1;
 bool clickGravityPads = false;
+ccColor3B layoutModeColorBackground = Mod::get()->getSavedValue<ccColor3B>("layoutModeColorBackground", {160, 160, 160});
+ccColor3B layoutModeColorGround = Mod::get()->getSavedValue<ccColor3B>("layoutModeColorGround", {160, 160, 160});
+// ccColor3B layoutModeColorLine = Mod::get()->getSavedValue<ccColor3B>("layoutModeColorLine", {255, 255, 255});
+// ccColor3B layoutModeColorObject = Mod::get()->getSavedValue<ccColor3B>("layoutModeColorObject", {255, 255, 255});
+
+// Convert ccColor3B -> float[3]
+std::array<float, 3> colorToFloat(ccColor3B color) {
+    return {
+        color.r / 255.0f,
+        color.g / 255.0f,
+        color.b / 255.0f
+    };
+}
+
+// Convert float[3] -> ccColor3B
+ccColor3B floatToColor(float* colArray) {
+    return {
+        static_cast<uint8_t>(colArray[0] * 255.0f),
+        static_cast<uint8_t>(colArray[1] * 255.0f),
+        static_cast<uint8_t>(colArray[2] * 255.0f)
+    };
+}
 
 class $modify(CCCircleWave)
 {
@@ -102,6 +126,32 @@ class $modify(ScarletUtils, GJBaseGameLayer)
 {
     void processCommands(float dt, bool a, bool b)
     {
+        // bool p1maintain = m_player1->m_holdingButtons[1] != m_player1->m_isUpsideDown;
+        // bool p2maintain = m_player2->m_holdingButtons[1] != m_player2->m_isUpsideDown;
+
+        // bool p1holding = m_uiLayer->m_p1Jumping;
+        // bool p2holding = m_uiLayer->m_p2Jumping;
+
+        // if (GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls))
+        //     std::swap(p1holding,p2holding);
+
+        // if (maintainGravity)
+        // {
+        //     m_queuedButtons.clear();
+        //     if ((p1holding || autoclickerHoldingP1) != p1maintain && maintainGravityP1)
+        //     {
+        //         ScarletUtils::queueButton(1, !m_player1->m_holdingButtons[1], GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+        //         autoclickerTimerP1 = INT32_MAX;
+        //     }
+
+        //     if ((p2holding || autoclickerHoldingP2) != p2maintain && maintainGravityP2 && m_gameState.m_isDualMode && m_levelSettings->m_twoPlayerMode)
+        //     {
+        //         ScarletUtils::queueButton(1, !m_player2->m_holdingButtons[1], !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+        //         autoclickerTimerP2 = INT32_MAX;
+        //     }
+        //     processQueuedButtons(0.f, true);
+        // }
+
         clickedJumpPad = false;
 
         if (straightUfo)
@@ -204,24 +254,6 @@ class $modify(ScarletUtils, GJBaseGameLayer)
         }
 
         GJBaseGameLayer::processCommands(dt, a, b);
-
-        bool p1holding = m_uiLayer->m_p1Jumping || autoclickerHoldingP1;
-        bool p2holding = m_uiLayer->m_p2Jumping || autoclickerHoldingP2;
-        if (maintainGravity && maintainGravityP1 && !PlayLayer::get()->m_levelEndAnimationStarted)
-        {
-            while (m_player1->m_isUpsideDown == (p1holding == m_player1->m_jumpBuffered) && !m_player1->m_controlsDisabled)
-            {
-                queueButton(1, p1holding ^ m_player1->m_isUpsideDown, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-            }
-        }
-
-        if (maintainGravity && maintainGravityP2 && !PlayLayer::get()->m_levelEndAnimationStarted)
-        {
-            while (m_player2->m_isUpsideDown == (p2holding == m_player2->m_jumpBuffered) && !m_player2->m_controlsDisabled)
-            {
-                queueButton(1, p2holding ^ m_player2->m_isUpsideDown, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-            }
-        }
     }
 
     void playExitDualEffect(PlayerObject* player)
@@ -231,10 +263,22 @@ class $modify(ScarletUtils, GJBaseGameLayer)
         GJBaseGameLayer::playExitDualEffect(player);
     }
 
-    void processQueuedButtons(float dt, bool clearInputQueue) {
+    void processQueuedButtons(float dt, bool clearInputQueue)
+    {
+        // if (maintainGravity)
+        //     m_queuedButtons.clear();
+        // bool p1maintain = m_player1->m_holdingButtons[1] != m_player1->m_isUpsideDown;
+        // bool p2maintain = m_player2->m_holdingButtons[1] != m_player2->m_isUpsideDown;
+
+        // bool p1holding = m_uiLayer->m_p1Jumping;
+        // bool p2holding = m_uiLayer->m_p2Jumping;
+
+        // if (GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls))
+        //     std::swap(p1holding,p2holding);
+
         for (auto& button : m_queuedButtons)
         {
-            if (autoSwift)
+            if (autoSwift && !maintainGravity)
                 m_queuedButtons.erase(std::remove_if(m_queuedButtons.begin(),m_queuedButtons.end(),[](auto x) { return !x.m_isPush;}), m_queuedButtons.end());
 
             auto player = button.m_isPlayer2 ^ GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls) ?  m_player2 : m_player1;
@@ -250,8 +294,8 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                     
                         if (i->m_objectType == GameObjectType::DashRing)
                         {
-                            this->queueButton(1, false, button.m_isPlayer2, dt);
-                            this->queueButton(1, true, button.m_isPlayer2, dt);
+                            GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
+                            GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
                         }
                     }
                 }
@@ -265,8 +309,8 @@ class $modify(ScarletUtils, GJBaseGameLayer)
 
                         if (i->m_objectType == GameObjectType::DropRing && (player->m_yVelocity <= 0 && !player->m_isUpsideDown) || (player->m_yVelocity >= 0 && player->m_isUpsideDown) || clickBlackOrbs)
                         {
-                            this->queueButton(1, false, button.m_isPlayer2, dt);
-                            this->queueButton(1, true, button.m_isPlayer2, dt);
+                            GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
+                            GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
                         }
                     }
                 }
@@ -275,15 +319,37 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                 {
                     for (int i=0; i<extraClickAmount; i++)
                     {
-                            this->queueButton(1, true, button.m_isPlayer2, dt);
-                            this->queueButton(1, false, button.m_isPlayer2, dt);
+                        GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
+                        GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
                     }
                 }
 
-                if (autoSwift)
-                    this->queueButton(1, false, button.m_isPlayer2, dt);
+                if (autoSwift && !maintainGravity)
+                {
+                    GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
+                }
             }
         }
+
+        // if (maintainGravity)
+        // {
+        //     m_queuedButtons.clear();
+
+        //     if ((p1holding || autoclickerHoldingP1) != p1maintain && maintainGravityP1)
+        //     {
+        //         GJBaseGameLayer::queueButton(1, !m_player1->m_holdingButtons[1], GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+        //         autoclickerTimerP1 = INT32_MAX;
+        //         GJBaseGameLayer::processQueuedButtons(dt, clearInputQueue);
+        //     }
+
+        //     if ((p2holding || autoclickerHoldingP2) != p2maintain && maintainGravityP2 && m_gameState.m_isDualMode && m_levelSettings->m_twoPlayerMode)
+        //     {
+        //         GJBaseGameLayer::queueButton(1, !m_player2->m_holdingButtons[1], !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+        //         autoclickerTimerP2 = INT32_MAX;
+        //         GJBaseGameLayer::processQueuedButtons(dt, clearInputQueue);
+        //     }
+        // }
+
         GJBaseGameLayer::processQueuedButtons(dt, clearInputQueue);
     }
 
@@ -300,33 +366,33 @@ class $modify(ScarletUtils, GJBaseGameLayer)
         switch (colorID)
         {
             case 1000: { // BG
-                color = { 80, 80, 80};
+                color = layoutModeColorBackground;
                 break;
             }
             case 1001: { // G1
-                color = {0, 0, 0};
+                color = layoutModeColorGround;
                 break;
             }
             case 1002: { // Line
-                color = {0, 0, 0};
+                color = { 255, 255, 255};
                 break;
             }
-            case 1004: { // Obj
-                color = {0, 0, 0};
-                break;
-            }
+            // case 1004: { // Obj
+            //     color = layoutModeColorObject;
+            //     break;
+            // }
             case 1009: { // G2
-                color = {0, 0, 0};
+                color = layoutModeColorGround;
                 break;
             }
-            case 1013: { // MG1
-                color = {0, 0, 0};
-                break;
-            }
-            case 1014: { // MG2
-                color = {0, 0, 0};
-                break;
-            }
+            // case 1013: { // MG1
+            //     color = { 110, 110, 110};
+            //     break;
+            // }
+            // case 1014: { // MG2
+            //     color = { 110, 110, 110};
+            //     break;
+            // }
             default: break;
         }
         GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
@@ -340,7 +406,7 @@ class $modify(ScarletUtils, GJBaseGameLayer)
 
     void createGroundLayer(int ground, int line) {
         if (layoutMode && PlayLayer::get())
-            ground = 1;
+            ground = 18;
         GJBaseGameLayer::createGroundLayer(ground, line);
     }
 };
@@ -418,46 +484,9 @@ class $modify(PlayLayer)
                 return;
         }
 
-        if (spamCheckpoints)
-            Loader::get()->queueInMainThread([]{
-                // InvokeBindEvent("robtop.geometry-dash/delete-checkpoint", true).post();
-                // InvokeBindEvent("robtop.geometry-dash/delete-checkpoint", false).post();
-            });
-
         PlayLayer::destroyPlayer(player, object);
-
-        if (flipOnDeath && preventDeath)
-        {
-            if (flipOnDeathSwift)
-            {
-                Loader::get()->queueInMainThread([player]
-                {
-                Loader::get()->queueInMainThread([player]
-                {
-                Loader::get()->queueInMainThread([player]
-                {
-                    // InvokeBindEvent(player->m_isSecondPlayer ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", true).post();
-                    // InvokeBindEvent(player->m_isSecondPlayer ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", false).post();
-                });
-                });
-                });
-            }
-            else
-            {
-                Loader::get()->queueInMainThread([player]
-                {
-                Loader::get()->queueInMainThread([player]
-                {
-                Loader::get()->queueInMainThread([player]
-                {
-                    // InvokeBindEvent(player->m_isSecondPlayer ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", 
-                        // player->m_isSecondPlayer ? flipOnDeathLogicP2 : flipOnDeathLogicP1).post();
-                });
-                });
-                });
-                (player->m_isSecondPlayer ? flipOnDeathLogicP2 : flipOnDeathLogicP1) = !(player->m_isSecondPlayer ? flipOnDeathLogicP2 : flipOnDeathLogicP1);
-            }
-        }
+        
+        bool which = player->m_isSecondPlayer ^ GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls);
 
         #ifdef GEODE_IS_WINDOWS
         if (preventDeath)
@@ -475,6 +504,42 @@ class $modify(PlayLayer)
         }
         #endif
 
+        if (flipOnDeath)
+        {
+            if (flipOnDeathSwift)
+            {
+                Loader::get()->queueInMainThread([which]
+                {
+                Loader::get()->queueInMainThread([which]
+                {
+                Loader::get()->queueInMainThread([which]
+                {
+                    GJBaseGameLayer::get()->queueButton(1, true, which, 0.0);
+                    GJBaseGameLayer::get()->queueButton(1, false, which, 0.0);
+                    // InvokeBindEvent(which ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", true).post();
+                    // InvokeBindEvent(which ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", false).post();
+                });
+                });
+                });
+            }
+            else
+            {
+                Loader::get()->queueInMainThread([which]
+                {
+                Loader::get()->queueInMainThread([which]
+                {
+                Loader::get()->queueInMainThread([which]
+                {
+                    GJBaseGameLayer::get()->queueButton(1, which ? flipOnDeathLogicP2 : flipOnDeathLogicP1, which, 0.0);
+                    // InvokeBindEvent(which ? "robtop.geometry-dash/jump-p2" : "robtop.geometry-dash/jump-p1", 
+                        // which ? flipOnDeathLogicP2 : flipOnDeathLogicP1).post();
+                });
+                });
+                });
+                (which ? flipOnDeathLogicP2 : flipOnDeathLogicP1) = !(which ? flipOnDeathLogicP2 : flipOnDeathLogicP1);
+            }
+        }
+
         autoclickerHoldingP1 = false;
         autoclickerTimerP1 = INT_MAX;
         autoclickerHoldingP2 = false;
@@ -483,7 +548,7 @@ class $modify(PlayLayer)
 
     void applyStartFade()
     {
-        if (fadeLevel)
+        if (fadeLevel && fadeLevelInDuration > 0)
         {
             if (this->getChildByID("start-fade-layer"_spr))
             {
@@ -499,7 +564,7 @@ class $modify(PlayLayer)
             auto removeAction = CCRemoveSelf::create();
             fadeLayer->runAction(CCSequence::create(fadeAction, removeAction, nullptr));
         }
-        if (fadeAudio)
+        if (fadeAudio && fadeAudioInDuration > 0)
         {
             FMODAudioEngine::sharedEngine()->fadeMusic(
                 fadeAudioInDuration, 0, 0.0f, 1.0f
@@ -525,7 +590,7 @@ class $modify(PlayLayer)
     {
         PlayLayer::showEndLayer(); 
 
-        if (fadeLevel)
+        if (fadeLevel && fadeLevelOutDuration > 0)
         {
             if (this->getChildByID("end-fade-layer"_spr))
             {
@@ -542,7 +607,7 @@ class $modify(PlayLayer)
             fadeLayer->runAction(fadeIn);
         }
 
-        if (fadeAudio)
+        if (fadeAudio && fadeAudioOutDuration > 0)
         {
             FMODAudioEngine::sharedEngine()->fadeMusic(
                 fadeAudioOutDuration, 0, 1.0f, 0.0f
@@ -643,42 +708,460 @@ $on_mod(Loaded)
     });
 
     ImGuiCocos::get().setup([&] {
-        auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 18.0f);
-        #ifdef GEODE_IS_MOBILE
-        font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 36.0f);
-        #endif
+        auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 21.0f);
         ImGui::GetIO().FontDefault = font;
     }).draw([&]
         {
             if (!menuVisible)
                 return;
 
-            ImGuiStyle &style = ImGui::GetStyle();
-            style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
-            style.WindowMenuButtonPosition = ImGuiDir_None;
-            style.WindowBorderSize = 0.f;
-            style.WindowRounding = 6.0f;
-            #ifdef GEODE_IS_MOBILE
-            style.WindowRounding = 12.0f;
-            #endif
-            style.PopupBorderSize = 0.f;
-            style.Colors[ImGuiCol_WindowBg] = ImVec4(0.025f, 0.025f, 0.025f, 0.9f);
-            style.Colors[ImGuiCol_PopupBg] = ImVec4(0.025f, 0.025f, 0.025f, 0.9f);
-            style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
-            style.Colors[ImGuiCol_TitleBg] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
-            style.Colors[ImGuiCol_CheckMark] = ImVec4(0.85f, 0.2f, 0.35f, 1.0f);
-            style.Colors[ImGuiCol_Button] = ImVec4(0.5f, 0.16f, 0.25f, 0.4f);
-            style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
-            style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.5f, 0.16f, 0.25f, 1.0f);
-            style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(1.f, 0.25f, 0.4f, 0.33f);
-            
+            ImGuiStyle& style = ImGui::GetStyle();
 
-            #ifdef GEODE_IS_MOBILE
-            ImGui::Begin("Scarlet Utils", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-            #endif
-            #ifdef GEODE_IS_DESKTOP
-            ImGui::Begin("Gameplay", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-            #endif
+	style.Alpha = 1.0f;
+	style.DisabledAlpha = 0.4f;
+	style.WindowPadding = ImVec2(8.0f, 8.0f);
+	style.WindowRounding = 4.0f;
+	style.WindowBorderSize = 0.0f;
+	style.WindowMinSize = ImVec2(32.0f, 32.0f);
+	style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
+	style.WindowMenuButtonPosition = ImGuiDir_None;
+	style.ChildRounding = 4.0f;
+	style.ChildBorderSize = 1.0f;
+	style.PopupRounding = 4.0f;
+	style.PopupBorderSize = 1.0f;
+	style.FramePadding = ImVec2(5.0f, 2.0f);
+	style.FrameRounding = 3.0f;
+	style.FrameBorderSize = 1.0f;
+	style.ItemSpacing = ImVec2(6.0f, 6.0f);
+	style.ItemInnerSpacing = ImVec2(6.0f, 6.0f);
+	style.CellPadding = ImVec2(6.0f, 6.0f);
+	style.IndentSpacing = 25.0f;
+	style.ColumnsMinSpacing = 6.0f;
+	style.ScrollbarSize = 15.0f;
+	style.ScrollbarRounding = 9.0f;
+	style.GrabMinSize = 10.0f;
+	style.GrabRounding = 3.0f;
+	style.TabRounding = 4.0f;
+	style.TabBorderSize = 1.0f;
+	style.ColorButtonPosition = ImGuiDir_Right;
+	style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+	style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+	
+	style.Colors[ImGuiCol_Text] = ImVec4(0.8583691f, 0.8583605f, 0.8583605f, 1.0f);
+	style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.49803922f, 0.49803922f, 0.49803922f, 1.0f);
+	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.09803922f, 0.09803922f, 0.09803922f, 1.0f);
+	style.Colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_PopupBg] = ImVec4(0.09803922f, 0.09803922f, 0.09803922f, 1.0f);
+	style.Colors[ImGuiCol_Border] = ImVec4(0.1882353f, 0.1882353f, 0.1882353f, 0.5f);
+	style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_FrameBg] = ImVec4(0.047058824f, 0.047058824f, 0.047058824f, 0.54f);
+	style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.1882353f, 0.1882353f, 0.1882353f, 0.54f);
+	style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.2f, 0.21960784f, 0.22745098f, 1.0f);
+	style.Colors[ImGuiCol_TitleBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.05882353f, 0.05882353f, 0.05882353f, 1.0f);
+	style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.13725491f, 0.13725491f, 0.13725491f, 1.0f);
+	style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.047058824f, 0.047058824f, 0.047058824f, 0.54f);
+	style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.3372549f, 0.3372549f, 0.3372549f, 0.54f);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.4f, 0.4f, 0.4f, 0.54f);
+	style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.5568628f, 0.5568628f, 0.5568628f, 0.54f);
+	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.7424893f, 0.14658587f, 0.2540021f, 1.0f);
+	style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.3372549f, 0.3372549f, 0.3372549f, 0.54f);
+	style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.5568628f, 0.5568628f, 0.5568628f, 0.54f);
+	style.Colors[ImGuiCol_Button] = ImVec4(0.047058824f, 0.047058824f, 0.047058824f, 0.54f);
+	style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.1882353f, 0.1882353f, 0.1882353f, 0.54f);
+	style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.2f, 0.21960784f, 0.22745098f, 1.0f);
+	style.Colors[ImGuiCol_Header] = ImVec4(0.0f, 0.0f, 0.0f, 0.52f);
+	style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.0f, 0.0f, 0.0f, 0.36f);
+	style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.2f, 0.21960784f, 0.22745098f, 0.33f);
+	style.Colors[ImGuiCol_Separator] = ImVec4(0.2784314f, 0.2784314f, 0.2784314f, 0.29f);
+	style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.4392157f, 0.4392157f, 0.4392157f, 0.29f);
+	style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.4f, 0.4392157f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.2784314f, 0.2784314f, 0.2784314f, 0.29f);
+	style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.4392157f, 0.4392157f, 0.4392157f, 0.29f);
+	style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.4f, 0.4392157f, 0.46666667f, 1.0f);
+	style.Colors[ImGuiCol_Tab] = ImVec4(0.0f, 0.0f, 0.0f, 0.52f);
+	style.Colors[ImGuiCol_TabHovered] = ImVec4(0.13725491f, 0.13725491f, 0.13725491f, 1.0f);
+	style.Colors[ImGuiCol_TabActive] = ImVec4(0.2f, 0.2f, 0.2f, 0.36f);
+	style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.0f, 0.0f, 0.0f, 0.52f);
+	style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.13725491f, 0.13725491f, 0.13725491f, 1.0f);
+	style.Colors[ImGuiCol_PlotLines] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogram] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.52f);
+	style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.0f, 0.0f, 0.0f, 0.52f);
+	style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.2784314f, 0.2784314f, 0.2784314f, 0.29f);
+	style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.06f);
+	style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.2f, 0.21960784f, 0.22745098f, 1.0f);
+	style.Colors[ImGuiCol_DragDropTarget] = ImVec4(0.32941177f, 0.6666667f, 0.85882354f, 1.0f);
+	style.Colors[ImGuiCol_NavHighlight] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+	style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 0.0f, 0.0f, 0.7f);
+	style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(1e-6f, 5.9227466e-7f, 5.9227466e-7f, 0.2f);
+	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(1e-6f, 5.751073e-7f, 5.751073e-7f, 0.35f);
+
+            ImGui::Begin("Scarlet Utils", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
+
+            if (ImGui::BeginTabBar("main"))
+            {
+                if (ImGui::BeginTabItem("Gameplay"))
+                {
+                    ImGui::Checkbox("Click Green Dash Orbs", &clickGreenDashOrbs);
+        
+                    ImGui::Checkbox("Click Black Orbs", &clickBlackOrbs);
+        
+                    ImGui::Checkbox("Easy Black Orb UFO", &blackOrbUfo);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Won't click black orbs if going up (or down depending on gravity).");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::Checkbox("Click Jump Pads", &clickJumpPads);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("When you hit pink, yellow or red pads, automatically swift click.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::Checkbox("Click Gravity Pads", &clickGravityPads);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("When you hit blue pads, automatically swift click.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::Checkbox("Auto Straight Fly", &straightFly);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Attempts to stabilize your ship.");
+                        ImGui::Text("Known to drift under certain circumstances, please don't report this as a bug.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("34z", ImGuiDir_Right)) ImGui::OpenPopup("straight fly options");
+                    
+                    if (ImGui::BeginPopup("straight fly options"))
+                    {
+                        ImGui::Checkbox("Player 1##ship", &straightFlyP1);
+                        if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP1", straightFlyP1); }
+        
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Threshold##p1ship", &straightFlyThresholdP1, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            straightFlyThresholdP1 = std::max(straightFlyThresholdP1, 0.0);
+                            Mod::get()->setSavedValue<double>("straightFlyThresholdP1", straightFlyThresholdP1);
+                        }
+        
+                        ImGui::Checkbox("Player 2##ship", &straightFlyP2);
+                        if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP2", straightFlyP2); }
+        
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Threshold##p2ship", &straightFlyThresholdP2, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            straightFlyThresholdP2 = std::max(straightFlyThresholdP2, 0.0);
+                            Mod::get()->setSavedValue<double>("straightFlyThresholdP2", straightFlyThresholdP2);
+                        }
+                        ImGui::EndPopup();
+                    }
+        
+                    ImGui::Checkbox("Auto Straight Ufo", &straightUfo);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Stabilizes your UFO on a Y position.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("920", ImGuiDir_Right)) ImGui::OpenPopup("straight ufo options");
+                    
+                    if (ImGui::BeginPopup("straight ufo options"))
+                    {
+                        ImGui::Checkbox("Player 1##ufo", &straightUfoP1);
+                        if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP1", straightUfoP1); }
+        
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Y Position Target##p1ufo", &straightUfoTargetP1, 0.0, 0.0, "%.5f");
+                        if (ImGui::IsItemEdited()) {
+                            straightUfoTargetP1 = std::max(straightUfoTargetP1, 0.0);
+                            Mod::get()->setSavedValue<double>("straightUfoTargetP1", straightUfoTargetP1);
+                        }
+        
+                        ImGui::InputDouble("Threshold##p1ufo", &straightUfoThresholdP1, 0.0, 0.0, "%.5f");
+                        if (ImGui::IsItemEdited()) {
+                            straightUfoThresholdP1 = std::max(straightUfoThresholdP1, 0.0);
+                            Mod::get()->setSavedValue<double>("straightUfoThresholdP1", straightUfoThresholdP1);
+                        }
+        
+                        ImGui::Checkbox("Player 2##ufo", &straightUfoP2);
+                        if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP2", straightUfoP2); }
+        
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Y Position Target##p2ufo", &straightUfoTargetP2, 0.0, 0.0, "%.5f");
+                        if (ImGui::IsItemEdited()) {
+                            straightUfoTargetP2 = std::max(straightUfoTargetP2, 0.0);
+                            Mod::get()->setSavedValue<double>("straightUfoTargetP2", straightUfoTargetP2);
+                        }
+        
+                        ImGui::InputDouble("Threshold##p2ufo", &straightUfoThresholdP2, 0.0, 0.0, "%.5f");
+                        if (ImGui::IsItemEdited()) {
+                            straightUfoThresholdP2 = std::max(straightUfoThresholdP2, 0.0);
+                            Mod::get()->setSavedValue<double>("straightUfoThresholdP2", straightUfoThresholdP2);
+                        }
+                        ImGui::EndPopup();
+                    }
+        
+                    // #ifdef GEODE_IS_WINDOWS
+                    // ImGui::Checkbox("Flip Input On Death", &flipOnDeath);
+                    // if (ImGui::IsItemHovered())
+                    // {
+                    //     ImGui::BeginTooltip();
+                    //     ImGui::Text("REQUIRES SILICATE");
+                    //     ImGui::Text("After death, clicks or releases automatically.");
+                    //     ImGui::Text("Only works with auto backstep.");
+                    //     ImGui::Text("Note: To click both players, use mirror inputs in Silicate.");
+                    //     ImGui::EndTooltip();
+                    // }
+        
+                    // static bool flipInputOptions = false;
+                    // ImGui::SameLine();
+                    // if (ImGui::ArrowButton("Flip Input Options", flipInputOptions ? ImGuiDir_Down : ImGuiDir_Right)) flipInputOptions = !flipInputOptions;
+        
+                    // if (flipInputOptions) {
+                    //     ImGui::Checkbox("Swift", &flipOnDeathSwift);
+                    // }
+                    // #endif
+        
+                    // ImGui::Checkbox("Maintain Gravity", &maintainGravity);
+        
+                    // static bool maintainGravityOptions = false;
+                    // ImGui::SameLine();
+                    // if (ImGui::ArrowButton("Maintain Gravity Options", maintainGravityOptions ? ImGuiDir_Down : ImGuiDir_Right)) maintainGravityOptions = !maintainGravityOptions;
+        
+                    // if (maintainGravityOptions) {
+                    //     ImGui::Checkbox("P1", &maintainGravityP1);
+                    //     ImGui::Checkbox("P2", &maintainGravityP2);
+                    // }
+        
+                    ImGui::Checkbox("Autoclicker P1", &autoclickerP1);
+                    if (ImGui::IsItemEdited()) { 
+                        autoclickerTimerP1 = INT_MAX;
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("lep", ImGuiDir_Right)) ImGui::OpenPopup("autoclicker p1 options");
+                    
+                    if (ImGui::BeginPopup("autoclicker p1 options"))
+                    {
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputInt("Click every frames##p1", &autoclickerEveryP1, 0, 0);
+                        if (ImGui::IsItemEdited()) { autoclickerEveryP1 = std::max(autoclickerEveryP1, 0); }
+        
+                        ImGui::InputInt("Hold for frames##p1", &autoclickerHoldP1, 0, 0);
+                        if (ImGui::IsItemEdited()) { autoclickerHoldP1 = std::max(autoclickerHoldP1, 1); }
+        
+                        ImGui::Checkbox("Swift##autoclickP1", &autoclickerSwiftP1);
+                        ImGui::EndPopup();
+                    }
+        
+                    ImGui::Checkbox("Autoclicker P2", &autoclickerP2);
+                    if (ImGui::IsItemEdited()) {
+                        autoclickerTimerP2 = INT_MAX;
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("wer", ImGuiDir_Right)) ImGui::OpenPopup("autoclicker p2 options");
+                    
+                    if (ImGui::BeginPopup("autoclicker p2 options"))
+                    {
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputInt("Click every frames##p2", &autoclickerEveryP2, 0, 0);
+                        if (ImGui::IsItemEdited()) { autoclickerEveryP2 = std::max(autoclickerEveryP2, 0); }
+        
+                        ImGui::InputInt("Hold for frames##p2", &autoclickerHoldP2, 0, 0);
+                        if (ImGui::IsItemEdited()) { autoclickerHoldP2 = std::max(autoclickerHoldP2, 1); }
+        
+                        ImGui::Checkbox("Swift##autoclickP2", &autoclickerSwiftP2);
+                        ImGui::EndPopup();
+                    }
+        
+                    // ImGui::Checkbox("Spam Checkpoints", &spamCheckpoints);
+        
+                    ImGui::Checkbox("Noclip", &noclip);
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("3t0", ImGuiDir_Right)) ImGui::OpenPopup("noclip options");
+                    
+                    if (ImGui::BeginPopup("noclip options"))
+                    {
+                        ImGui::Checkbox("Player 1##noclip", &noclipP1);
+                        ImGui::Checkbox("Player 2##noclip", &noclipP2);
+                        ImGui::EndPopup();
+                    }
+        
+                    ImGui::Checkbox("Auto Swift", &autoSwift);
+        
+                    ImGui::Checkbox("Extra Clicks", &extraClick);
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("88d", ImGuiDir_Right)) ImGui::OpenPopup("extra click options");
+                    
+                    if (ImGui::BeginPopup("extra click options"))
+                    {
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputInt("Amount##extraclicks", &extraClickAmount, 0, 0);
+                        ImGui::EndPopup();
+                    }
+                    ImGui::EndTabItem();
+                }
+
+
+                if (ImGui::BeginTabItem("Visual"))
+                {
+                    ImGui::Checkbox("Level Fade In/Out", &fadeLevel);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("fadeLevel", fadeLevel); }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Levels will fade in and out on level start/end.");
+                        ImGui::Text("For use with renderer.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("2qd", ImGuiDir_Right)) ImGui::OpenPopup("level fade options");
+                    
+                    if (ImGui::BeginPopup("level fade options"))
+                    {
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Fade In##level", &fadeLevelInDuration, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            fadeLevelInDuration = std::max(fadeLevelInDuration, 0.0);
+                            Mod::get()->setSavedValue<double>("fadeLevelInDuration", fadeLevelInDuration);
+                        }
+        
+                        ImGui::InputDouble("Fade Out##level", &fadeLevelOutDuration, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            fadeLevelOutDuration = std::max(fadeLevelOutDuration, 0.0);
+                            Mod::get()->setSavedValue<double>("fadeLevelOutDuration", fadeLevelOutDuration);
+                        }
+                        ImGui::EndPopup();
+                    }
+        
+                    ImGui::Checkbox("Audio Fade In/Out", &fadeAudio);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("fadeAudio", fadeAudio); }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Music will fade in and out on level start/end.");
+                        ImGui::Text("For use with renderer.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("324", ImGuiDir_Right)) ImGui::OpenPopup("audio fade options");
+        
+                    if (ImGui::BeginPopup("audio fade options"))
+                    {
+                        ImGui::PushItemWidth(100.f);
+                        ImGui::InputDouble("Fade In##audio", &fadeAudioInDuration, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            fadeAudioInDuration = std::max(fadeAudioInDuration, 0.0);
+                            Mod::get()->setSavedValue<double>("fadeAudioInDuration", fadeAudioInDuration);
+                        }
+        
+                        ImGui::InputDouble("Fade Out##audio", &fadeAudioOutDuration, 0.0, 0.0, "%.2f");
+                        if (ImGui::IsItemEdited()) {
+                            fadeAudioOutDuration = std::max(fadeAudioOutDuration, 0.0);
+                            Mod::get()->setSavedValue<double>("fadeAudioOutDuration", fadeAudioOutDuration);
+                        }
+                        ImGui::EndPopup();
+                    }
+        
+                    ImGui::Checkbox("Hide Endscreen", &hideEndscreen);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("hideEndscreen", hideEndscreen); }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Disables the statistics dropdown after completing a level.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::Checkbox("Hide New Best", &hideNewBest);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("hideNewBest", hideNewBest); }
+        
+                    ImGui::Checkbox("No Death Effect", &noDeathEffect);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noDeathEffect", noDeathEffect); }
+        
+                    ImGui::Checkbox("No Effects", &noEffect);
+                    if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noEffect", noEffect); }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Stops most effects from rendering.");
+                        ImGui::EndTooltip();
+                    }
+        
+                    ImGui::Checkbox("Layout Mode", &layoutMode);
+
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("4jx", ImGuiDir_Right)) ImGui::OpenPopup("layout mode options");
+                    
+                    if (ImGui::BeginPopup("layout mode options"))
+                    {
+                        static std::array<float, 3> bg = colorToFloat(layoutModeColorBackground);
+                        ImGui::ColorEdit3("Background", bg.data());
+                        if (ImGui::IsItemEdited())
+                        {
+                            layoutModeColorBackground = floatToColor(bg.data());
+                            Mod::get()->setSavedValue<ccColor3B>("layoutModeColorBackground", layoutModeColorBackground);
+                        }
+
+                        static std::array<float, 3> ground = colorToFloat(layoutModeColorGround);
+                        ImGui::ColorEdit3("Ground", ground.data());
+                        if (ImGui::IsItemEdited())
+                        {
+                            layoutModeColorGround = floatToColor(ground.data());
+                            Mod::get()->setSavedValue<ccColor3B>("layoutModeColorGround", layoutModeColorGround);
+                        }
+
+                        // static std::array<float, 3> line = colorToFloat(layoutModeColorLine);
+                        // ImGui::ColorEdit3("Line", line.data());
+                        // if (ImGui::IsItemEdited())
+                        // {
+                        //     layoutModeColorLine = floatToColor(line.data());
+                        //     Mod::get()->setSavedValue<ccColor3B>("layoutModeColorLine", layoutModeColorLine);
+                        // }
+
+                        // static std::array<float, 3> obj = colorToFloat(layoutModeColorObject);
+                        // ImGui::ColorEdit3("Object", obj.data());
+                        // if (ImGui::IsItemEdited())
+                        // {
+                        //     layoutModeColorObject = floatToColor(obj.data());
+                        //     Mod::get()->setSavedValue<ccColor3B>("layoutModeColorObject", layoutModeColorObject);
+                        // }
+
+                        ImGui::EndPopup();
+                    }
+
+                    ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Useful for rendering levels that break on the first attempt.");
+                        ImGui::EndTooltip();
+                    }
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
             // #ifdef GEODE_IS_WINDOWS
             // ImGui::Checkbox("Auto Backstep On Death", &preventDeath);
             // if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("preventDeath", preventDeath); }
@@ -703,307 +1186,6 @@ $on_mod(Loaded)
             // }
             // #endif
 
-            ImGui::Checkbox("Click Green Dash Orbs", &clickGreenDashOrbs);
-
-            ImGui::Checkbox("Click Black Orbs", &clickBlackOrbs);
-
-            ImGui::Checkbox("Easy Black Orb UFO", &blackOrbUfo);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Won't click black orbs if going up (or down depending on gravity).");
-                ImGui::EndTooltip();
-            }
-
-            ImGui::Checkbox("Click Jump Pads", &clickJumpPads);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("When you hit pink, yellow or red pads, automatically swift click.");
-                ImGui::EndTooltip();
-            }
-
-            ImGui::Checkbox("Click Gravity Pads", &clickGravityPads);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("When you hit blue pads, automatically swift click.");
-                ImGui::EndTooltip();
-            }
-
-            ImGui::Checkbox("Auto Straight Fly", &straightFly);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Attempts to stabilize your ship.");
-                ImGui::Text("Known to drift under certain circumstances, please don't report this as a bug.");
-                ImGui::EndTooltip();
-            }
-
-            static bool straightFlyOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Auto Straight Fly Options", straightFlyOptions ? ImGuiDir_Down : ImGuiDir_Right)) straightFlyOptions = !straightFlyOptions;
-            
-            if (straightFlyOptions)
-            {
-                ImGui::Checkbox("Player 1##ship", &straightFlyP1);
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP1", straightFlyP1); }
-
-                ImGui::InputDouble("Threshold##p1ship", &straightFlyThresholdP1, 0.25, 0.25, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    straightFlyThresholdP1 = std::max(straightFlyThresholdP1, 0.0);
-                    Mod::get()->setSavedValue<double>("straightFlyThresholdP1", straightFlyThresholdP1);
-                }
-
-                ImGui::Checkbox("Player 2##ship", &straightFlyP2);
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightFlyP2", straightFlyP2); }
-
-                ImGui::InputDouble("Threshold##p2ship", &straightFlyThresholdP2, 0.25, 0.25, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    straightFlyThresholdP2 = std::max(straightFlyThresholdP2, 0.0);
-                    Mod::get()->setSavedValue<double>("straightFlyThresholdP2", straightFlyThresholdP2);
-                }
-            }
-
-            ImGui::Checkbox("Auto Straight Ufo", &straightUfo);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Stabilizes your UFO on a Y position.");
-                ImGui::EndTooltip();
-            }
-
-            static bool autoStraightUfoOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Straight Ufo Options", autoStraightUfoOptions ? ImGuiDir_Down : ImGuiDir_Right)) autoStraightUfoOptions = !autoStraightUfoOptions;
-            
-            if (autoStraightUfoOptions)
-            {
-                ImGui::Checkbox("Player 1##ufo", &straightUfoP1);
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP1", straightUfoP1); }
-
-                ImGui::InputDouble("Y Position Target##p1ufo", &straightUfoTargetP1, 2.5, 2.5, "%.0f");
-                if (ImGui::IsItemEdited()) {
-                    straightUfoTargetP1 = std::max(straightUfoTargetP1, 0.0);
-                    Mod::get()->setSavedValue<double>("straightUfoTargetP1", straightUfoTargetP1);
-                }
-
-                ImGui::InputDouble("Threshold##p1ufo", &straightUfoThresholdP1, 0.25, 0.25, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    straightUfoThresholdP1 = std::max(straightUfoThresholdP1, 0.0);
-                    Mod::get()->setSavedValue<double>("straightUfoThresholdP1", straightUfoThresholdP1);
-                }
-
-                ImGui::Checkbox("Player 2##ufo", &straightUfoP2);
-                if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("straightUfoP2", straightUfoP2); }
-
-                ImGui::InputDouble("Y Position Target##p2ufo", &straightUfoTargetP2, 2.5, 2.5, "%.0f");
-                if (ImGui::IsItemEdited()) {
-                    straightUfoTargetP2 = std::max(straightUfoTargetP2, 0.0);
-                    Mod::get()->setSavedValue<double>("straightUfoTargetP2", straightUfoTargetP2);
-                }
-
-                ImGui::InputDouble("Threshold##p2ufo", &straightUfoThresholdP2, 0.25, 0.25, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    straightUfoThresholdP2 = std::max(straightUfoThresholdP2, 0.0);
-                    Mod::get()->setSavedValue<double>("straightUfoThresholdP2", straightUfoThresholdP2);
-                }
-            }
-
-            // #ifdef GEODE_IS_WINDOWS
-            // ImGui::Checkbox("Flip Input On Death", &flipOnDeath);
-            // if (ImGui::IsItemHovered())
-            // {
-            //     ImGui::BeginTooltip();
-            //     ImGui::Text("REQUIRES SILICATE");
-            //     ImGui::Text("After death, clicks or releases automatically.");
-            //     ImGui::Text("Only works with auto backstep.");
-            //     ImGui::Text("Note: To click both players, use mirror inputs in Silicate.");
-            //     ImGui::EndTooltip();
-            // }
-
-            // static bool flipInputOptions = false;
-            // ImGui::SameLine();
-            // if (ImGui::ArrowButton("Flip Input Options", flipInputOptions ? ImGuiDir_Down : ImGuiDir_Right)) flipInputOptions = !flipInputOptions;
-
-            // if (flipInputOptions) {
-            //     ImGui::Checkbox("Swift", &flipOnDeathSwift);
-            // }
-            // #endif
-
-            // ImGui::Checkbox("Maintain Gravity", &maintainGravity);
-
-            // static bool maintainGravityOptions = false;
-            // ImGui::SameLine();
-            // if (ImGui::ArrowButton("Maintain Gravity Options", maintainGravityOptions ? ImGuiDir_Down : ImGuiDir_Right)) maintainGravityOptions = !maintainGravityOptions;
-
-            // if (maintainGravityOptions) {
-            //     ImGui::Checkbox("P1", &maintainGravityP1);
-            //     ImGui::Checkbox("P2", &maintainGravityP2);
-            // }
-
-            ImGui::Checkbox("Autoclicker P1", &autoclickerP1);
-            if (ImGui::IsItemEdited()) { 
-                autoclickerTimerP1 = INT_MAX;
-            }
-
-            static bool autoclickerP1Options = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Autoclicker P1 Options", autoclickerP1Options ? ImGuiDir_Down : ImGuiDir_Right)) autoclickerP1Options = !autoclickerP1Options;
-            
-            if (autoclickerP1Options)
-            {
-                ImGui::InputInt("Click every frames##p1", &autoclickerEveryP1);
-                if (ImGui::IsItemEdited()) { autoclickerEveryP1 = std::max(autoclickerEveryP1, 0); }
-
-                ImGui::InputInt("Hold for frames##p1", &autoclickerHoldP1);
-                if (ImGui::IsItemEdited()) { autoclickerHoldP1 = std::max(autoclickerHoldP1, 1); }
-
-                ImGui::Checkbox("Swift##autoclickP1", &autoclickerSwiftP1);
-            }
-
-            ImGui::Checkbox("Autoclicker P2", &autoclickerP2);
-            if (ImGui::IsItemEdited()) {
-                autoclickerTimerP2 = INT_MAX;
-            }
-
-            static bool autoclickerP2Options = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Autoclicker P2 Options", autoclickerP2Options ? ImGuiDir_Down : ImGuiDir_Right)) autoclickerP2Options = !autoclickerP2Options;
-            
-            if (autoclickerP2Options)
-            {
-                ImGui::InputInt("Click every frames##p2", &autoclickerEveryP2);
-                if (ImGui::IsItemEdited()) { autoclickerEveryP2 = std::max(autoclickerEveryP2, 0); }
-
-                ImGui::InputInt("Hold for frames##p2", &autoclickerHoldP2);
-                if (ImGui::IsItemEdited()) { autoclickerHoldP2 = std::max(autoclickerHoldP2, 1); }
-
-                ImGui::Checkbox("Swift##autoclickP2", &autoclickerSwiftP2);
-            }
-
-            // ImGui::Checkbox("Spam Checkpoints", &spamCheckpoints);
-
-            ImGui::Checkbox("Noclip", &noclip);
-
-            static bool noclipOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Noclip Options", noclipOptions ? ImGuiDir_Down : ImGuiDir_Right)) noclipOptions = !noclipOptions;
-            
-            if (noclipOptions)
-            {
-                ImGui::Checkbox("Player 1##noclip", &noclipP1);
-                ImGui::Checkbox("Player 2##noclip", &noclipP2);
-            }
-
-            ImGui::Checkbox("Auto Swift", &autoSwift);
-
-            ImGui::Checkbox("Extra Clicks", &extraClick);
-
-            static bool extraClickOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Extra Click Options", extraClickOptions ? ImGuiDir_Down : ImGuiDir_Right)) extraClickOptions = !extraClickOptions;
-            
-            if (extraClickOptions)
-            {
-                ImGui::InputInt("Amount##extraclicks", &extraClickAmount);
-            }
-
-            #ifdef GEODE_IS_DESKTOP
-            ImGui::End();
-            ImGui::Begin("Visual", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-            #endif
-
-            ImGui::Checkbox("Level Fade In/Out", &fadeLevel);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("fadeLevel", fadeLevel); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Levels will fade in and out on level start/end.");
-                ImGui::Text("For use with renderer.");
-                ImGui::EndTooltip();
-            }
-
-            static bool levelFadeOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Level Fade Options", levelFadeOptions ? ImGuiDir_Down : ImGuiDir_Right)) levelFadeOptions = !levelFadeOptions;
-            
-            if (levelFadeOptions) {
-                ImGui::InputDouble("Fade In##level", &fadeLevelInDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    fadeLevelInDuration = std::max(fadeLevelInDuration, 0.0);
-                    Mod::get()->setSavedValue<double>("fadeLevelInDuration", fadeLevelInDuration);
-                }
-
-                ImGui::InputDouble("Fade Out##level", &fadeLevelOutDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    fadeLevelOutDuration = std::max(fadeLevelOutDuration, 0.0);
-                    Mod::get()->setSavedValue<double>("fadeLevelOutDuration", fadeLevelOutDuration);
-                }
-            }
-
-            ImGui::Checkbox("Audio Fade In/Out", &fadeAudio);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("fadeAudio", fadeAudio); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Music will fade in and out on level start/end.");
-                ImGui::Text("For use with renderer.");
-                ImGui::EndTooltip();
-            }
-
-            static bool audioFadeOptions = false;
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("Audio Fade Options", audioFadeOptions ? ImGuiDir_Down : ImGuiDir_Right)) audioFadeOptions = !audioFadeOptions;
-
-            if (audioFadeOptions) {
-                ImGui::InputDouble("Fade In##audio", &fadeAudioInDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    fadeAudioInDuration = std::max(fadeAudioInDuration, 0.0);
-                    Mod::get()->setSavedValue<double>("fadeAudioInDuration", fadeAudioInDuration);
-                }
-
-                ImGui::InputDouble("Fade Out##audio", &fadeAudioOutDuration, 0.1, 0.1, "%.2f");
-                if (ImGui::IsItemEdited()) {
-                    fadeAudioOutDuration = std::max(fadeAudioOutDuration, 0.0);
-                    Mod::get()->setSavedValue<double>("fadeAudioOutDuration", fadeAudioOutDuration);
-                }
-            }
-
-            ImGui::Checkbox("Hide Endscreen", &hideEndscreen);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("hideEndscreen", hideEndscreen); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Disables the statistics dropdown after completing a level.");
-                ImGui::EndTooltip();
-            }
-
-            ImGui::Checkbox("Hide New Best", &hideNewBest);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("hideNewBest", hideNewBest); }
-
-            ImGui::Checkbox("No Death Effect", &noDeathEffect);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noDeathEffect", noDeathEffect); }
-
-            ImGui::Checkbox("No Effects", &noEffect);
-            if (ImGui::IsItemEdited()) { Mod::get()->setSavedValue<bool>("noEffect", noEffect); }
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Stops most effects from rendering.");
-                ImGui::EndTooltip();
-            }
-
-            ImGui::Checkbox("Layout Mode", &layoutMode);
-
-            ImGui::Checkbox("Restart First Frame", &restartFirstFrame);
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Useful for rendering levels that break on the first attempt.");
-                ImGui::EndTooltip();
-            }
-
             ImGui::End();
             });
 }
@@ -1014,7 +1196,7 @@ class $modify(ScarletUtilsPauseLayerHook, PauseLayer)
     void customSetup() {
         PauseLayer::customSetup();
 
-        auto buttonLabel = CCLabelBMFont::create("Utils", "goldFont.fnt");
+        auto buttonLabel = CCLabelBMFont::create("UTILS", "goldFont.fnt");
         auto btn = CCMenuItemSpriteExtra::create(
             CircleButtonSprite::create(buttonLabel),
             this,
