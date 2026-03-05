@@ -281,7 +281,7 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             if (autoSwift && !maintainGravity)
                 m_queuedButtons.erase(std::remove_if(m_queuedButtons.begin(),m_queuedButtons.end(),[](auto x) { return !x.m_isPush;}), m_queuedButtons.end());
 
-            auto player = button.m_isPlayer2 ^ GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls) ?  m_player2 : m_player1;
+            auto player = button.m_isPlayer2 ^ GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls) ? m_player2 : m_player1;
 
             if (button.m_isPush)
             {       
@@ -294,8 +294,13 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                     
                         if (i->m_objectType == GameObjectType::DashRing)
                         {
+                            #ifdef GEODE_IS_MOBILE
+                            player->pushButton(PlayerButton::Jump);
+                            player->releaseButton(PlayerButton::Jump);
+                            #else
                             GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
                             GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
+                            #endif
                         }
                     }
                 }
@@ -309,8 +314,13 @@ class $modify(ScarletUtils, GJBaseGameLayer)
 
                         if (i->m_objectType == GameObjectType::DropRing && (player->m_yVelocity <= 0 && !player->m_isUpsideDown) || (player->m_yVelocity >= 0 && player->m_isUpsideDown) || clickBlackOrbs)
                         {
+                            #ifdef GEODE_IS_MOBILE
+                            player->pushButton(PlayerButton::Jump);
+                            player->releaseButton(PlayerButton::Jump);
+                            #else
                             GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
                             GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
+                            #endif
                         }
                     }
                 }
@@ -319,14 +329,23 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                 {
                     for (int i=0; i<extraClickAmount; i++)
                     {
+                        #ifdef GEODE_IS_MOBILE
+                        player->pushButton(PlayerButton::Jump);
+                        player->releaseButton(PlayerButton::Jump);
+                        #else
                         GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
                         GJBaseGameLayer::queueButton(1, true, button.m_isPlayer2, 0.0);
+                        #endif
                     }
                 }
 
                 if (autoSwift && !maintainGravity)
                 {
+                    #ifdef GEODE_IS_MOBILE
+                    player->releaseButton(PlayerButton::Jump);
+                    #else
                     GJBaseGameLayer::queueButton(1, false, button.m_isPlayer2, 0.0);
+                    #endif
                 }
             }
         }
