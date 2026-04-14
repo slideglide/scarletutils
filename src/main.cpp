@@ -155,6 +155,8 @@ class $modify(ScarletUtils, GJBaseGameLayer)
 
     void processCommands(float dt, bool isHalfTick, bool isLastTick)
     {
+        if (layoutMode)
+            toggleGlitter(false); 
         clickedJumpPad = false;
 
         if (straightUfo)
@@ -165,8 +167,8 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             (m_player1->getPositionY() > straightUfoTargetP1 + straightUfoThresholdP1 && m_player1->m_yVelocity >= 0 && m_player1->m_isUpsideDown) ||
             (m_player1->getPositionY() < straightUfoTargetP1 - straightUfoThresholdP1 && m_player1->m_yVelocity < 0 && m_player1->m_isUpsideDown))
             ) {
-                ScarletUtils::queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                ScarletUtils::queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
             }
 
             if (straightUfoP2 &&
@@ -175,8 +177,8 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             (m_player2->getPositionY() > straightUfoTargetP2 + straightUfoThresholdP2 && m_player2->m_yVelocity >= 0 && m_player2->m_isUpsideDown) ||
             (m_player2->getPositionY() < straightUfoTargetP2 - straightUfoThresholdP2 && m_player2->m_yVelocity < 0 && m_player2->m_isUpsideDown))
             ) {
-                ScarletUtils::queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                ScarletUtils::queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
             }
         }
 
@@ -188,7 +190,7 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                 (m_player1->getYVelocity() > straightFlyThresholdP1 && !m_player1->m_holdingButtons[1] && m_player1->m_isUpsideDown) ||
                 (m_player1->getYVelocity() < -straightFlyThresholdP1 && m_player1->m_holdingButtons[1] && m_player1->m_isUpsideDown))
             )
-                ScarletUtils::queueButton(1, !m_player1->m_holdingButtons[1], GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, !m_player1->m_holdingButtons[1], GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
 
             if (straightFlyP2 &&
                 ((m_player2->getYVelocity() < -straightFlyThresholdP2 && !m_player2->m_holdingButtons[1] && !m_player2->m_isUpsideDown) ||
@@ -196,7 +198,7 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                 (m_player2->getYVelocity() > straightFlyThresholdP2 && !m_player2->m_holdingButtons[1] && m_player2->m_isUpsideDown) ||
                 (m_player2->getYVelocity() < -straightFlyThresholdP2 && m_player2->m_holdingButtons[1] && m_player2->m_isUpsideDown))
             )
-                ScarletUtils::queueButton(1, !m_player2->m_holdingButtons[1], !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                queueButton(1, !m_player2->m_holdingButtons[1], !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
         }
 
         if (autoclickerP1)
@@ -204,11 +206,11 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             if (autoclickerHoldingP1 && autoclickerTimerP1 >= autoclickerHoldP1)
             {
                 if (!autoclickerSwiftP1)
-                    ScarletUtils::queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 else
                 {
-                    ScarletUtils::queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                    ScarletUtils::queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 }
                 autoclickerHoldingP1 = false;
                 autoclickerTimerP1 = 0;
@@ -216,11 +218,11 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             if (!autoclickerHoldingP1 && autoclickerTimerP1 >= autoclickerEveryP1)
             {
                 if (!autoclickerSwiftP1)
-                    ScarletUtils::queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 else
                 {
-                    ScarletUtils::queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                    ScarletUtils::queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 }
                 autoclickerHoldingP1 = true;
                 autoclickerTimerP1 = 0;
@@ -232,11 +234,11 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             if (autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerHoldP2)
             {
                 if (!autoclickerSwiftP2)
-                    ScarletUtils::queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 else
                 {
-                    ScarletUtils::queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                    ScarletUtils::queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 }
                 autoclickerHoldingP2 = false;
                 autoclickerTimerP2 = 0;
@@ -244,11 +246,11 @@ class $modify(ScarletUtils, GJBaseGameLayer)
             if (!autoclickerHoldingP2 && autoclickerTimerP2 >= autoclickerEveryP2)
             {
                 if (!autoclickerSwiftP2)
-                    ScarletUtils::queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 else
                 {
-                    ScarletUtils::queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
-                    ScarletUtils::queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, true, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
+                    queueButton(1, false, !GameManager::sharedState()->getGameVariable(GameVar::Flip2PlayerControls), 0.0);
                 }
                 autoclickerHoldingP2 = true;
                 autoclickerTimerP2 = 0;
@@ -375,18 +377,17 @@ class $modify(ScarletUtils, GJBaseGameLayer)
                 color = { 255, 255, 255};
                 break;
             }
-            case 1009: { // G2
-                color = layoutModeColorGround;
+            default: {
+                color = { 255, 255, 255};
                 break;
             }
-            default: break;
         }
         GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
     }
 
     void createBackground(int background) {
         if (layoutMode)
-            background = 1;
+            background = 13;
         GJBaseGameLayer::createBackground(background);
     }
     void createMiddleground(int middleground) {
@@ -443,10 +444,7 @@ class $modify(GameObject)
 class $modify(PlayLayer)
 {
     void addObject(GameObject* object)
-    {
-        if (noEffect && object->m_objectType != GameObjectType::InverseMirrorPortal && object->m_objectType != GameObjectType::NormalMirrorPortal)
-            object->m_hasNoEffects = true;
-        
+    {        
         if (!layoutMode || !PlayLayer::get())
             return PlayLayer::addObject(object);
         
@@ -458,15 +456,24 @@ class $modify(PlayLayer)
         }
 
         object->m_hasNoGlow = true;
-        object->m_activeMainColorID = -1;
-        object->m_activeDetailColorID = -1;
+        object->m_isHide = false;
+        object->m_hasNoAudioScale = false;
         object->m_detailUsesHSV = false;
         object->m_baseUsesHSV = false;
-        object->m_isHide = false;
-        object->m_hasNoAudioScale = true;
+        object->m_activeDetailColorID = -1;
+        object->m_activeMainColorID = -1;
         object->m_isDontEnter = true;
         object->m_isDontFade = true;
+        object->m_ignoreFade = true;
+        object->m_ignoreEnter = true;
+        object->m_hasParticles = false;
+        object->m_hasNoParticles = true;
+        object->m_hasNoEffects = false;
         object->setOpacity(255);
+
+        if (noEffect && object->m_objectType != GameObjectType::InverseMirrorPortal && object->m_objectType != GameObjectType::NormalMirrorPortal)
+            object->m_hasNoEffects = true;
+
         PlayLayer::addObject(object);
     }
 
@@ -519,15 +526,21 @@ class $modify(PlayLayer)
         };
     }
 
+    void onEnterTransitionDidFinish() {
+        if (layoutMode)
+            GJBaseGameLayer::get()->toggleGlitter(false);
+        PlayLayer::onEnterTransitionDidFinish();
+    }
+
     void startGame()
     {
         PlayLayer::startGame();
         this->applyStartFade();
         if (restartFirstFrame)
         {
-            Loader::get()->queueInMainThread([this] {
-            Loader::get()->queueInMainThread([this] {
-                this->resetLevel();
+            Loader::get()->queueInMainThread([] {
+            Loader::get()->queueInMainThread([] {
+                PlayLayer::get()->resetLevel();
             });
             });
         }
@@ -655,7 +668,7 @@ $on_mod(Loaded)
     });
 
     ImGuiCocos::get().setup([&] {
-        auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF((Mod::get()->getResourcesDir() / "font.ttf").string().c_str(), 21.0f);
+        auto* font = ImGui::GetIO().Fonts->AddFontFromFileTTF((geode::utils::string::pathToString(Mod::get()->getResourcesDir() / "font.ttf")).c_str(), 21.0f);
         ImGui::GetIO().FontDefault = font;
     }).draw([&]
         {
